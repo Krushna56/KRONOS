@@ -1,0 +1,6 @@
+{
+    "event": "agent_thinking",
+    "data": {
+        "message": "Searching jobs..."
+    }
+}

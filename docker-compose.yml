@@ -1,0 +1,46 @@
+# services:
+
+#   postgres:
+#     image: postgres:16
+
+#     container_name: aiclone_postgres
+
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: Ai@5605
+#       POSTGRES_DB: aiclone
+
+#     ports:
+#       - "5433:5432"
+
+#   redis:
+#     image: redis:7
+
+#     container_name: aiclone_redis
+
+#     ports:
+#       - "6379:6379"
+
+
+# version: '3.9'
+
+services:
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: ai_clone_db
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Ai@5605
+      POSTGRES_DB: aiclone
+
+    ports:
+      - "5433:5432"
+
+  redis:
+    image: redis:latest
+    container_name: ai_clone_redis
+
+    ports:
+      - "6379:6379"
