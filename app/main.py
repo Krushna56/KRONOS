@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+import time
+
 
 # Add project root to sys.path so absolute imports like 'app.core' work
 project_root = Path(__file__).resolve().parent.parent
@@ -28,6 +30,19 @@ from app.agents.platforms.discord.agent import DiscordAgent
 from app.agents.platforms.telegram.agent import TelegramAgent
 from app.agents.platforms.gmail.agent import GmailAgent
 from app.agents.platforms.linkedin.agent import LinkedInAgent
+
+from voice.audio_manager import AudioManager
+
+audio = AudioManager()
+
+audio.start()
+
+try:
+    while True:
+        chunk = audio.read()
+        print(chunk.shape)
+except KeyboardInterrupt:
+    audio.stop()
 
 
 
