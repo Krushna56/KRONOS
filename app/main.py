@@ -31,7 +31,7 @@ from app.agents.platforms.telegram.agent import TelegramAgent
 from app.agents.platforms.gmail.agent import GmailAgent
 from app.agents.platforms.linkedin.agent import LinkedInAgent
 
-from voice.audio_manager import AudioManager
+from app.voice.audio_manager import AudioManager
 
 audio = AudioManager()
 

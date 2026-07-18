@@ -1,9 +1,10 @@
-from voice.Microphpone import Microphpone
+from .microphone import Microphone
 
 class AudioManager:
 
     def __init__(self):
 
+        self.microphone = Microphone()
         self.microphone.start()
     
     def start(self):

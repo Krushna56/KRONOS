@@ -1,10 +1,10 @@
 from sqlite3 import Blob
-from queue import Queue
+from queue import Queue, Full
 import sounddevice as sd 
 
-from voice.config import AudioConfig
+from .config import AudioConfig
 
-class Microphpone:
+class Microphone:
 
     def __init__(self):
         self.config = AudioConfig()
@@ -17,12 +17,34 @@ class Microphpone:
     
     def callback(self, indata, frames, time, status):
         if status:
-            print(status)
+            print(f"[Microphone] Status: {status}")
         
-        self.audio_queue.put(indata.copy())
+        try:
+            self.audio_queue.put_nowait(
+                indata.copy()
+            )
+        
+        except Full:
+            try:
+                self.audio_queue.get_nowait()
+            except Exception:
+                pass
+
+            try:
+                self.audio_queue.put_nowait(
+                    indata.copy()
+                )
+            except Full:
+                pass
+
+        
+        # self.audio_queue.put(indata.copy())
 
     
     def start(self):
+
+        if self.stream is not None:
+            return
 
         self.stream = sd.InputStream(
             samplerate= self.config.sample_rate,
@@ -35,10 +57,12 @@ class Microphpone:
         self.stream.start()
 
     def stop(self):
-        if self.stream:
+        if self.stream is not None:
             self.stream.stop()
             self.stream.close()
-    
+
+            self.stream = None
+
     def get_audio(self):
         return self.audio_queue.get()
         

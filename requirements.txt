@@ -7,8 +7,6 @@ alembic
 redis==5.0.4
 python-dotenv 
 pydantic-settings 
-pydantic[email]
-
 loguru
 python-jose 
 passlib 
@@ -18,6 +16,9 @@ pgvector
 sentence-transformers
 transformers
 torch
-sounddevice==0.5.2
+sounddevice>=0.5.2
 numpy>=2.3.2
-soundfile==0.13.1
+soundfile>=0.13.1
+SpeechRecognition==3.11.0
+torchaudio
+silero-vad
