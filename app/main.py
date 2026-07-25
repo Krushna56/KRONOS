@@ -1,12 +1,13 @@
 import sys
 from pathlib import Path
-import time
-
 
 # Add project root to sys.path so absolute imports like 'app.core' work
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+from app.voice import audio_manager
+import time
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,6 +33,9 @@ from app.agents.platforms.gmail.agent import GmailAgent
 from app.agents.platforms.linkedin.agent import LinkedInAgent
 
 from app.voice.audio_manager import AudioManager
+from app.voice.config import AudioConfig
+from app.voice.recorder import Recorder
+from app.voice.vad.speech_detector import SpeechDetector
 
 audio = AudioManager()
 
@@ -121,6 +125,69 @@ async def websocket_endpoint(websocket: WebSocket):
     except:
         manager.disconnect(websocket)
 
+def main():
+    
+    config = AudioConfig()
+    audio_manager = AudioManager()
+    speech_detector = SpeechDetector()
+    recorder = Recorder()
+
+    print()
+    print("============================")
+    print("AI Clone Voice Runtime")
+    print("============================")
+    print()
+
+    print("[system] starting microphone...")
+    audio_manager.start()
+
+    print("[system] Microphone ready")
+    print("[system] waiting for speech")
+    print()
+
+    try:
+        while True:
+
+            audio_chunk = (
+                audio_manager.read()
+            )
+
+            completed_audio = (
+                speech_detector.process_chunk(
+                    audio_chunk
+                )
+            )
+
+            if completed_audio is None:
+                continue
+
+            filepath = recorder.save(
+                audio_chunks = completed_audio,
+                sample_rate=config.sample_rate
+            )
+
+            print(
+                f"[Recorder saved]: "
+                f"{filepath}"
+            )
+
+            print()
+            print(
+                "[system] waiting for speech..."
+            )
+
+    except KeyboardInterrupt:
+
+        print()
+        print("[system] shutdown requested")
+
+    finally:
+
+        audio_manager.stop()
+
+        print("[system] Microphone stopped...")
+    
+    
 if __name__ == "__main__":
     import uvicorn
     print("Starting server...")

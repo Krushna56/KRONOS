@@ -1,8 +1,4 @@
 from __future__ import annotations
-from pygments.token import Text
-from platform import platform
-from proto import primitives
-from pydantic.v1.color import Color
 from sqlalchemy import Column, Integer, Text, TIMESTAMP
 from pgvector.sqlalchemy import Vector
 

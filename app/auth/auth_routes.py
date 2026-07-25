@@ -1,5 +1,3 @@
-from cv2 import detail
-from requests import status_codes
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 

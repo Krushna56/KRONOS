@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from silero_vad import load_silero_vad
-from voice.config import AudioConfig
+from app.voice.config import AudioConfig
 
 class VADEngine:
     
