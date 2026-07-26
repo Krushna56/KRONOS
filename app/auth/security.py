@@ -1,4 +1,3 @@
-from IPython.core import payload
 from app.core.security import pwd_context
 from jose.constants import ALGORITHMS
 from datetime import datetime, timedelta

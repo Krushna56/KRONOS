@@ -5,7 +5,7 @@ class AudioManager:
     def __init__(self):
 
         self.microphone = Microphone()
-        self.microphone.start()
+    
     
     def start(self):
 
@@ -19,7 +19,14 @@ class AudioManager:
 
         print("Microphone stopped")
     
-    def read(self):
+    def subscribe(self, subscriber):
 
-        return self.microphone.get_audio()
+        self.microphone.publisher.subscribe(
+            subscriber
+        )
     
+    def unsubscribe(self, subscriber):
+
+        self.microphone.publisher.unsubscribe(
+            subscriber
+        )

@@ -3,6 +3,7 @@ from queue import Queue, Full
 import sounddevice as sd 
 
 from .config import AudioConfig
+from voice.bus.publisher import AudioPublisher 
 
 class Microphone:
 
@@ -13,11 +14,17 @@ class Microphone:
             maxsize = self.config.queue_size
         )
 
+        self.publisher = AudioPublisher()
+
         self.stream = None
     
     def callback(self, indata, frames, time, status):
         if status:
             print(f"[Microphone] Status: {status}")
+        
+        self.publisher.publish(
+            indata.copy()
+        )
         
         try:
             self.audio_queue.put_nowait(

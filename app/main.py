@@ -1,3 +1,5 @@
+from app.voice.bus.subscriber import CounterSubscriber
+from dns.tsig import Key
 import sys
 from pathlib import Path
 
@@ -36,17 +38,8 @@ from app.voice.audio_manager import AudioManager
 from app.voice.config import AudioConfig
 from app.voice.recorder import Recorder
 from app.voice.vad.speech_detector import SpeechDetector
-
-audio = AudioManager()
-
-audio.start()
-
-try:
-    while True:
-        chunk = audio.read()
-        print(chunk.shape)
-except KeyboardInterrupt:
-    audio.stop()
+from voice.audio_manager import AudioManager
+from voice.bus.events import PrintSubscriber
 
 
 
@@ -89,6 +82,28 @@ app.include_router(ws_routes.router, tags=["WebSockets"])
 app.include_router(router)
 app.include_router(social_router)
 app.include_router(draft_router)
+
+
+audio = AudioManager()
+
+printer = PrintSubscriber()
+
+audio.subscribe(printer)
+
+audio.subscribe(PrintSubscriber())
+
+audio.subscribe(CounterSubscriber())
+
+audio.start()
+
+try:
+    while True:
+        pass 
+except KeyboardInterrupt:
+    audio.stop()
+
+
+
 
 
 

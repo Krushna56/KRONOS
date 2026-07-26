@@ -1,4 +1,4 @@
-# AI_REPLICA — Krushna's Personal AI Assistant
+# AI_REPLICA — Krushna's Personal AI Assistant (KRONOS)
 
 ## Status: ⚙️ Phase 3 Development (v3.0.0-dev)
 
@@ -27,12 +27,14 @@
 ## Features
 
 ✅ **Core Intelligence**
+
 - GPT-4 powered AI engine
 - Intelligent decision routing
 - Adaptive learning system
 - Pattern recognition
 
 ✅ **6 Specialized Agents**
+
 - Social media management
 - Email automation
 - Job search & applications
@@ -41,6 +43,7 @@
 - Calendar & reminders
 
 ✅ **5 Service Integrations**
+
 - Discord bot
 - LinkedIn API
 - Gmail integration
@@ -48,11 +51,13 @@
 - Web automation
 
 ✅ **Advanced Storage**
+
 - PostgreSQL relational DB
 - Vector embeddings (semantic search)
 - Redis caching layer
 
 ✅ **Runtime Orchestration**
+
 - Event-driven architecture
 - Thread pool workers
 - System orchestration engine
@@ -98,17 +103,20 @@ response = jarvis.process_input("What's on my calendar?")
 ## Architecture Highlights
 
 ### Modular Design
+
 - **Separation of concerns**: Each module has single responsibility
 - **Easy to extend**: Add new agents, integrations, or storage backends
 - **Testable**: Each component can be tested independently
 
 ### Scalability
+
 - **Thread pool workers** for concurrent operations
 - **Caching layer** for performance
 - **Vector database** for semantic search at scale
 - **Event bus** for loose coupling
 
 ### Maintainability
+
 - **Comprehensive logging** across all systems
 - **Type hints** for better code clarity
 - **Documentation** at module and function level
@@ -116,17 +124,18 @@ response = jarvis.process_input("What's on my calendar?")
 
 ## Core Components
 
-| Module | Purpose | Key Classes |
-|--------|---------|-------------|
-| **Brain** | AI reasoning | AIEngine, DecisionMaker, LearningSystem |
-| **Memory** | Data storage | Memory, TaskManager |
-| **Persona** | Identity | Personality, Tone |
-| **Reasoning** | Pattern learning | PatternLearner |
-| **Autonomy** | Activity tracking | ActivityTracker |
+| Module        | Purpose           | Key Classes                             |
+| ------------- | ----------------- | --------------------------------------- |
+| **Brain**     | AI reasoning      | AIEngine, DecisionMaker, LearningSystem |
+| **Memory**    | Data storage      | Memory, TaskManager                     |
+| **Persona**   | Identity          | Personality, Tone                       |
+| **Reasoning** | Pattern learning  | PatternLearner                          |
+| **Autonomy**  | Activity tracking | ActivityTracker                         |
 
 ## Usage Examples
 
 ### Basic Chat
+
 ```python
 from AI_REPLICA.main import init_jarvis
 
@@ -136,6 +145,7 @@ print(response)
 ```
 
 ### Task Management
+
 ```python
 # Create task
 task = jarvis.task_manager.create_task("Review code", priority=3)
@@ -148,6 +158,7 @@ pending = jarvis.task_manager.list_tasks(status="pending")
 ```
 
 ### Memory Operations
+
 ```python
 # Store fact
 jarvis.memory.store_fact("favorite_language", "Python")
@@ -160,6 +171,7 @@ jarvis.memory.record_event("learning_started", "Started learning ML")
 ```
 
 ### Pattern Analysis
+
 ```python
 # Analyze interaction patterns
 stats = jarvis.pattern_learner.analyze()
@@ -182,16 +194,19 @@ pytest tests/test_core.py::test_ai_engine
 ## Development Guide
 
 ### Adding a New Agent
+
 1. Create `agents/my_agent/` directory
 2. Implement agent class with required methods
 3. Register with orchestrator
 
 ### Adding an Integration
+
 1. Create `integrations/my_service/` directory
 2. Implement integration class
 3. Configure credentials in `.env`
 
 ### Adding Storage Backend
+
 1. Create `storage/my_backend/` directory
 2. Implement backend interface
 3. Register in system initialization
@@ -214,6 +229,7 @@ pytest tests/test_core.py::test_ai_engine
 ## Roadmap & Phase Progression
 
 ### Phase 3: Social Agents & Voice Upgrades (In Progress)
+
 - [x] **Social Agent Abstraction Framework**: Created `BaseAgent`, `AgentRegistry`, `AgentManager` and agent health check APIs.
 - [x] **Production Database Foundation**: Created base mixins (`UUIDMixin`, `TimestampMixin`, `SoftDeleteMixin`) and global schema enums.
 - [x] **Voice Activity Detection (VAD) Engine**: Integrated Silero VAD for real-time speech/silence probability detection.
@@ -222,6 +238,7 @@ pytest tests/test_core.py::test_ai_engine
 - [ ] **Social Integrations**: Real connection bots for Discord, Telegram, Gmail, and LinkedIn.
 
 ### Future Roadmap
+
 - [ ] Multi-user support with authentication
 - [ ] Advanced NLP with fine-tuned models
 - [ ] Mobile companion app

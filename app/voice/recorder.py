@@ -1,5 +1,5 @@
 from sqlalchemy import TIMESTAMP
-from pathlib import path 
+from pathlib import Path
 from datetime import datetime 
 import wave
 import numpy as np 
@@ -8,7 +8,7 @@ class Recorder:
 
     def __init__(self, output_directory:str = "recordings"):
 
-        self.output_directory = path(
+        self.output_directory = Path(
             output_directory
         )
 
@@ -17,7 +17,7 @@ class Recorder:
             exist_ok=True
         )
     
-    def save(self, audio_chunks: list[np.ndarray], sample_rate: int, filename: str | None = None) -> path:
+    def save(self, audio_chunks: list[np.ndarray], sample_rate: int, filename: str | None = None) -> Path:
 
         if not audio_chunks:
             raise ValueError(
