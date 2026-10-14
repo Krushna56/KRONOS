@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
 
+    # ── Platform Agent Credentials (optional) ──────────────────────
+    DISCORD_BOT_TOKEN: str = ""
+    TELEGRAM_BOT_TOKEN: str = ""
+    GMAIL_TOKEN_JSON: str = ""
+    GMAIL_CREDENTIALS_JSON: str = ""
+    LINKEDIN_ACCESS_TOKEN: str = ""
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
@@ -49,5 +56,3 @@ class Settings(BaseSettings):
     }
 
 settings = Settings()
-
-

@@ -1,69 +1,91 @@
-from app.voice.bus.subscriber import CounterSubscriber
-from dns.tsig import Key
+"""
+AI Clone — FastAPI Application Entry Point
+Phase 3: Social Agents
+"""
+
 import sys
 from pathlib import Path
 
-# Add project root to sys.path so absolute imports like 'app.core' work
+# Ensure project root is on sys.path for absolute imports
 project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from app.voice import audio_manager
-import time
+import asyncio
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.core.logger import logger
-from app.api.routes import health, auth, chat, jobs
-from app.api.websocket import ws_routes
-from fastapi import WebSocket
-from app.websocket.manager import manager
-from contextlib import asynccontextmanager
-from app.tasks.runtime import ai_runtime
-import asyncio
 
-from app.api.routes.message_routes import router
-from app.auth.auth_routes import router as auth_router
+# Routers
+from app.api.routes import health, auth, chat, jobs
+from app.api.routes.message_routes import router as message_router
 from app.api.routes.social_routes import router as social_router
 from app.api.routes.draft_routes import router as draft_router
+from app.auth.auth_routes import router as auth_router
+from app.api.websocket import ws_routes
 
-from app.core.dependencies import manager
+# WebSocket connection manager
+from app.websocket.manager import manager as ws_manager
+
+# Agent framework
+from app.core.dependencies import manager as agent_manager
 from app.agents.platforms.discord.agent import DiscordAgent
 from app.agents.platforms.telegram.agent import TelegramAgent
 from app.agents.platforms.gmail.agent import GmailAgent
 from app.agents.platforms.linkedin.agent import LinkedInAgent
 
-from app.voice.audio_manager import AudioManager
-from app.voice.config import AudioConfig
-from app.voice.recorder import Recorder
-from app.voice.vad.speech_detector import SpeechDetector
-from voice.audio_manager import AudioManager
-from voice.bus.events import PrintSubscriber
+# Background AI runtime
+from app.tasks.runtime import ai_runtime
 
 
+# ─────────────────────────────────────────────
+#  Register all platform agents
+# ─────────────────────────────────────────────
+agent_manager.add(DiscordAgent("discord"))
+agent_manager.add(TelegramAgent("telegram"))
+agent_manager.add(GmailAgent("gmail"))
+agent_manager.add(LinkedInAgent("linkedin"))
 
+
+# ─────────────────────────────────────────────
+#  Lifespan: startup & shutdown
+# ─────────────────────────────────────────────
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(app: FastAPI):
+    logger.info("🚀 AI Clone starting up — connecting social agents...")
+
+    # Start background AI runtime
     asyncio.create_task(ai_runtime())
 
+    # Connect all registered agents
+    await agent_manager.connect_all()
+
+    logger.info("✅ All agents connected. Server ready.")
     yield
 
+    # Graceful shutdown
+    logger.info("🛑 AI Clone shutting down — disconnecting agents...")
+    await agent_manager.disconnect_all()
+    logger.info("✅ All agents disconnected. Goodbye.")
+
+
+# ─────────────────────────────────────────────
+#  FastAPI app
+# ─────────────────────────────────────────────
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Enterprise-grade agentic personal AI backend (Phase 1)",
-    version="1.0.0",
-    lifespan=lifespan
+    description="Enterprise-grade agentic personal AI backend — Phase 3 (Social Agents)",
+    version="3.0.0",
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-
-manager.add(DiscordAgent("discord"))
-manager.add(TelegramAgent("telegram"))
-manager.add(GmailAgent("gmail"))
-manager.add(LinkedInAgent("linkedin"))
-
-
-# CORS middleware for cross-origin frontend requests
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -72,138 +94,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register REST and WebSocket Routers
+# ─────────────────────────────────────────────
+#  Routers
+# ─────────────────────────────────────────────
 app.include_router(auth_router)
-app.include_router(health.router, prefix="/api/health", tags=["Health"])
-app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
-app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
-app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
+app.include_router(health.router,   prefix="/api/health", tags=["Health"])
+app.include_router(auth.router,     prefix="/api/auth",   tags=["Auth"])
+app.include_router(chat.router,     prefix="/api/chat",   tags=["Chat"])
+app.include_router(jobs.router,     prefix="/api/jobs",   tags=["Jobs"])
 app.include_router(ws_routes.router, tags=["WebSockets"])
-app.include_router(router)
+app.include_router(message_router)
 app.include_router(social_router)
 app.include_router(draft_router)
 
 
-audio = AudioManager()
-
-printer = PrintSubscriber()
-
-audio.subscribe(printer)
-
-audio.subscribe(PrintSubscriber())
-
-audio.subscribe(CounterSubscriber())
-
-audio.start()
-
-try:
-    while True:
-        pass 
-except KeyboardInterrupt:
-    audio.stop()
-
-
-
-
-
-
-@app.get("/")
+# ─────────────────────────────────────────────
+#  Core endpoints
+# ─────────────────────────────────────────────
+@app.get("/", tags=["Root"])
 async def root_endpoint():
-    """Application root metadata information."""
+    """Application root metadata."""
     return {
         "application": settings.APP_NAME,
         "environment": settings.APP_ENV,
+        "version": "3.0.0",
         "status": "online",
-        "docs_url": "/docs"
+        "docs_url": "/docs",
+        "phase": "Phase 3 — Social Agents",
     }
 
-@app.get("/agents/health")
-async def get_agents_health():
-    """Retrieve health status of all registered agents."""
-    return await manager.health()
 
-logger.info(f"FastAPI application '{settings.APP_NAME}' successfully initialized in '{settings.APP_ENV}' mode.")
+@app.get("/agents/health", tags=["Agents"])
+async def get_agents_health():
+    """Retrieve health status of all registered social agents."""
+    return await agent_manager.health()
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-
+    """Primary WebSocket endpoint for real-time communication."""
+    await ws_manager.connect(websocket)
     try:
         while True:
-
             data = await websocket.receive_text()
-            
-            await manager.send_message(
-                f"AI received: {data}",
-                websocket
-            )
-    except:
-        manager.disconnect(websocket)
+            await ws_manager.send_message(f"AI received: {data}", websocket)
+    except Exception:
+        ws_manager.disconnect(websocket)
 
-def main():
-    
-    config = AudioConfig()
-    audio_manager = AudioManager()
-    speech_detector = SpeechDetector()
-    recorder = Recorder()
 
-    print()
-    print("============================")
-    print("AI Clone Voice Runtime")
-    print("============================")
-    print()
+# ─────────────────────────────────────────────
+#  Startup log
+# ─────────────────────────────────────────────
+logger.info(f"FastAPI application '{settings.APP_NAME}' initialized in '{settings.APP_ENV}' mode.")
 
-    print("[system] starting microphone...")
-    audio_manager.start()
 
-    print("[system] Microphone ready")
-    print("[system] waiting for speech")
-    print()
-
-    try:
-        while True:
-
-            audio_chunk = (
-                audio_manager.read()
-            )
-
-            completed_audio = (
-                speech_detector.process_chunk(
-                    audio_chunk
-                )
-            )
-
-            if completed_audio is None:
-                continue
-
-            filepath = recorder.save(
-                audio_chunks = completed_audio,
-                sample_rate=config.sample_rate
-            )
-
-            print(
-                f"[Recorder saved]: "
-                f"{filepath}"
-            )
-
-            print()
-            print(
-                "[system] waiting for speech..."
-            )
-
-    except KeyboardInterrupt:
-
-        print()
-        print("[system] shutdown requested")
-
-    finally:
-
-        audio_manager.stop()
-
-        print("[system] Microphone stopped...")
-    
-    
 if __name__ == "__main__":
     import uvicorn
-    print("Starting server...")
     uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)

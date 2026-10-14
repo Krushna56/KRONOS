@@ -6,7 +6,7 @@ Cognitive loop that:
 2. Retrieves tone context & memory
 3. Generates AI-powered draft reply
 4. Executes the correct reply mode:
-   - AUTO: send immediately via agent
+   - AUTO: send immediately via the real platform agent
    - SUGGEST/APPROVAL: save draft for your review
    - MANUAL: notify you, do nothing
 5. Simulates human typing delay (anti-bot safety)
@@ -26,6 +26,7 @@ from app.services.social_services import MessageService, ConversationService
 from app.services.ai.llm_service import llm_service
 from app.services.ai.prompt_builder import PromptBuilder
 from app.repositories.social_repositories import MessageRepository, ConversationRepository
+from app.agents.manager import agent_manager
 
 
 class ReplyOrchestrator:
@@ -185,10 +186,23 @@ class ReplyOrchestrator:
             is_outgoing=True
         )
 
-        # TODO: Call the real platform agent here (e.g., DiscordAgent.send_message())
-        logger.info(
-            f"[SENT] Message delivered on {platform_name}: '{draft_content[:60]}...'"
-        )
+        # ── Dispatch via the real platform agent ────────────────────────────
+        # conversation.external_id is the channel/chat/thread ID on the platform
+        agent = agent_manager.get(platform_name.lower())
+        if agent:
+            await agent.send_message(
+                destination=conversation.external_id,
+                message=draft_content,
+            )
+            logger.info(
+                f"[SENT] Message dispatched via {platform_name} agent to "
+                f"'{conversation.external_id}': '{draft_content[:60]}...'"
+            )
+        else:
+            logger.warning(
+                f"[SENT] No agent registered for platform '{platform_name}'. "
+                f"Message saved to DB but NOT dispatched."
+            )
 
         return sent_msg
 

@@ -1,9 +1,11 @@
-from sqlite3 import Blob
 from queue import Queue, Full
 import sounddevice as sd 
 
 from .config import AudioConfig
-from voice.bus.publisher import AudioPublisher 
+try:
+    from app.voice.bus.publisher import AudioPublisher
+except ImportError:
+    from .bus.publisher import AudioPublisher 
 
 class Microphone:
 

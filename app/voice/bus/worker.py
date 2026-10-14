@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class AudioWorker(Thread):
+class AudioWorker(Thread):   
 
     def __init__(self, subscriber, queue_size=100):
 

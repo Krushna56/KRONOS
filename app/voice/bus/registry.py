@@ -1,4 +1,7 @@
-from voice.bus.exceptions import (SubscriberAlreadyExists, SubscriberNotFound,)
+try:
+    from app.voice.bus.exceptions import SubscriberAlreadyExists, SubscriberNotFound
+except ImportError:
+    from .exceptions import SubscriberAlreadyExists, SubscriberNotFound
 
 class SubscriberRegistry:
 

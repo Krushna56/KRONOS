@@ -1,4 +1,7 @@
-from voice.bus.subscriber import AudioSubscriber
+try:
+    from app.voice.bus.subscriber import AudioSubscriber
+except ImportError:
+    from .subscriber import AudioSubscriber
 
 class PrintSubscriber(AudioSubscriber):
 

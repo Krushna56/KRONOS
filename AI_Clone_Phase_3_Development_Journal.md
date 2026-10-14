@@ -303,6 +303,21 @@ Phase: **Phase 3 -- Social Agents**
 
 Progress:
 
--   Day 1: Complete
--   Day 2 Module 1: Complete
--   Day 2 Module 2: Next
+-   Day 1: ✅ Complete
+-   Day 2 Module 1: ✅ Complete
+-   Day 2 Module 2 (Platform + SocialAccount models): ✅ Complete
+-   Day 2 Module 3 (Conversation + Participant models): ✅ Complete
+-   Day 2 Module 4 (Message + Attachment models): ✅ Complete
+-   Day 2 Module 5 (DB session, seed): ✅ Complete
+-   Day 2 Module 6 (Pydantic schemas): ✅ Complete
+-   Day 2 Module 7 (Repository layer): ✅ Complete
+-   Day 2 Module 8 (Service layer): ✅ Complete
+-   Day 2 Module 9 (REST API routes): ✅ Complete
+-   Day 2 Module 10 (Platform Integrations): ✅ **COMPLETE TODAY**
+    -   DiscordAgent: discord.py bot, on_message, send_message, DB normalize
+    -   TelegramAgent: python-telegram-bot v20+, long polling, on_message, send_message
+    -   GmailAgent: Gmail API OAuth2, background email polling, thread normalize
+    -   LinkedInAgent: LinkedIn API v2, inbox polling, recruiter/job tracking
+    -   Reply Orchestrator: wired to real agents for AUTO mode dispatch
+    -   main.py: fixed blocking loop, clean lifespan startup/shutdown
+-   Module 11 + 12 (AI Integration + Automation): ✅ Already implemented (ReplyOrchestrator)

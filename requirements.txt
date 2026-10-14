@@ -1,27 +1,56 @@
+# Core
 fastapi
 uvicorn
-sqlalchemy 
-asyncpg 
-psycopg2-binary 
-alembic
-redis==5.0.4
-python-dotenv 
-pydantic-settings 
+python-dotenv
+pydantic-settings
 loguru
-python-jose 
-passlib 
+
+# Database
+sqlalchemy
+asyncpg
+psycopg2-binary
+alembic
+pgvector
+
+# Cache
+redis==5.0.4
+
+# Auth
+python-jose
+passlib
 bcrypt==4.0.1
 pyjwt
-pgvector
+
+# AI / ML
 sentence-transformers
 transformers
 torch
+torchaudio
+
+# Voice
 sounddevice>=0.5.2
 numpy>=2.3.2
 soundfile>=0.13.1
 SpeechRecognition==3.11.0
-torchaudio
 silero-vad
 openwakeword
 onnxruntime
 librosa
+
+# ──────────────────────────────────────────────
+# Platform Agent Dependencies — Module 10
+# ──────────────────────────────────────────────
+
+# Discord
+discord.py
+
+# Telegram
+python-telegram-bot[job-queue]
+
+# Gmail (Google API)
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+# LinkedIn / HTTP
+httpx
