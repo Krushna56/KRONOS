@@ -54,3 +54,6 @@ google-auth-oauthlib
 
 # LinkedIn / HTTP
 httpx
+
+# Telephony
+twilio

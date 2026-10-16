@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRONOS // AI Clone & Mini Robot Mission Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #060810;
+            --bg-card: rgba(14, 19, 32, 0.75);
+            --bg-card-hover: rgba(20, 27, 45, 0.85);
+            --border-glow: rgba(0, 240, 255, 0.2);
+            --border-glow-active: rgba(0, 240, 255, 0.6);
+            --cyan-neon: #00f0ff;
+            --cyan-dim: #008899;
+            --purple-neon: #8a2be2;
+            --purple-glow: rgba(138, 43, 226, 0.35);
+            --green-active: #00ff88;
+            --red-alert: #ff0055;
+            --text-primary: #f0f4fc;
+            --text-muted: #8290ab;
+            --font-main: 'Outfit', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 20%, rgba(0, 240, 255, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(138, 43, 226, 0.1) 0%, transparent 45%),
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* Top Navigation Header */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 36px;
+            background: rgba(6, 8, 16, 0.8);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--cyan-neon), var(--purple-neon));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: #000;
+            box-shadow: 0 0 20px var(--cyan-dim);
+        }
+
+        .brand-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            background: linear-gradient(90deg, #fff, var(--cyan-neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: var(--font-mono);
+        }
+
+        .system-status-pills {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .status-dot.active {
+            background: var(--green-active);
+            box-shadow: 0 0 10px var(--green-active);
+        }
+
+        .status-dot.pulsing {
+            background: var(--cyan-neon);
+            box-shadow: 0 0 12px var(--cyan-neon);
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* Main Dashboard Grid */
+        main {
+            padding: 28px 36px;
+            max-width: 1700px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 340px 1fr 380px;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 18px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-glow-active);
+            box-shadow: 0 10px 40px rgba(0, 240, 255, 0.12);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--cyan-neon);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(0, 240, 255, 0.12);
+            color: var(--cyan-neon);
+            font-family: var(--font-mono);
+        }
+
+        /* Central Orb & Visualizer */
+        .orb-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .hologram-orb-container {
+            width: 240px;
+            height: 240px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .orb-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px dashed rgba(0, 240, 255, 0.3);
+            animation: rotate-ring 20s linear infinite;
+        }
+
+        .ring-1 { width: 100%; height: 100%; }
+        .ring-2 { 
+            width: 82%; 
+            height: 82%; 
+            border-color: rgba(138, 43, 226, 0.4); 
+            animation: rotate-ring-rev 14s linear infinite; 
+        }
+        .ring-3 { 
+            width: 64%; 
+            height: 64%; 
+            border: 1px solid rgba(0, 240, 255, 0.2); 
+        }
+
+        @keyframes rotate-ring {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes rotate-ring-rev {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+
+        .core-orb {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #00f0ff 0%, #3a0099 75%, #050510 100%);
+            box-shadow: 0 0 45px rgba(0, 240, 255, 0.6), inset 0 0 20px #fff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .core-orb.listening {
+            animation: pulse-orb 1.2s infinite alternate;
+            box-shadow: 0 0 70px rgba(0, 255, 136, 0.8), inset 0 0 25px #00ff88;
+        }
+
+        .core-orb.speaking {
+            animation: speak-orb 0.8s infinite alternate;
+            box-shadow: 0 0 70px rgba(138, 43, 226, 0.9), inset 0 0 25px #ff00bb;
+        }
+
+        @keyframes pulse-orb {
+            0% { transform: scale(0.95); }
+            100% { transform: scale(1.1); }
+        }
+
+        @keyframes speak-orb {
+            0% { transform: scale(1); filter: hue-rotate(0deg); }
+            100% { transform: scale(1.15); filter: hue-rotate(90deg); }
+        }
+
+        /* Voice Canvas Visualizer */
+        #visualizer-canvas {
+            width: 100%;
+            height: 60px;
+            margin-top: 10px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        /* Live Conversation Terminal */
+        .terminal-box {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            height: 230px;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .terminal-msg {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .terminal-msg.user .sender {
+            color: var(--cyan-neon);
+        }
+
+        .terminal-msg.clone .sender {
+            color: #ff77ee;
+        }
+
+        .terminal-msg .sender {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .terminal-msg .bubble {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 8px 12px;
+            border-radius: 8px;
+            line-height: 1.45;
+            color: #d8e2f5;
+        }
+
+        .terminal-msg.clone .bubble {
+            background: rgba(138, 43, 226, 0.12);
+            border-left: 2px solid var(--purple-neon);
+        }
+
+        /* Action Buttons */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+            width: 100%;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-family: var(--font-main);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cyan-neon), #0099ff);
+            color: #000;
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 26px rgba(0, 240, 255, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(0, 240, 255, 0.4);
+        }
+
+        /* Telemetry & Robot Stats */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .stat-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-family: var(--font-mono);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .stat-unit {
+            font-size: 0.75rem;
+            color: var(--cyan-neon);
+            font-weight: 400;
+        }
+
+        /* Robot Actions Grid */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px;
+            color: #c0d0f0;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--cyan-neon);
+            color: #fff;
+        }
+
+        /* Phone Call Live Card */
+        .call-card {
+            background: linear-gradient(135deg, rgba(255, 0, 85, 0.08), rgba(138, 43, 226, 0.08));
+            border: 1px solid rgba(255, 0, 85, 0.25);
+            border-radius: 14px;
+            padding: 16px;
+            margin-top: 14px;
+        }
+
+        .call-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .caller-id {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #fff;
+        }
+
+        .call-status-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            background: var(--red-alert);
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Omnichannel Stream List */
+        .channel-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            max-height: 250px;
+        }
+
+        .channel-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 10px 14px;
+            transition: all 0.2s ease;
+        }
+
+        .channel-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+
+        .channel-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .channel-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        .channel-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .channel-time {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        /* Sliders */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+        }
+
+        .slider-header span:last-child {
+            color: var(--cyan-neon);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--cyan-neon);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--cyan-neon);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Chat Terminal Messages */
+        .terminal-msg {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: fadeIn 0.25s ease;
+            margin-bottom: 10px;
+        }
+
+        .terminal-msg .sender {
+            font-size: 0.68rem;
+            font-family: var(--font-mono);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .terminal-msg.user { align-items: flex-end; }
+        .terminal-msg.clone { align-items: flex-start; }
+
+        .terminal-msg.user .sender { color: var(--cyan-neon); }
+        .terminal-msg.clone .sender { color: var(--green-active); }
+
+        .terminal-msg .bubble {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .terminal-msg.user .bubble {
+            background: rgba(0, 240, 255, 0.12);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            color: #e0f4ff;
+            border-bottom-right-radius: 3px;
+        }
+
+        .terminal-msg.clone .bubble {
+            background: rgba(0, 255, 136, 0.08);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            color: #d0fbe8;
+            border-bottom-left-radius: 3px;
+        }
+
+        .terminal-msg.clone .bubble.streaming {
+            border-color: rgba(0, 255, 136, 0.45);
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
+        }
+
+        .cursor-blink {
+            display: inline-block;
+            color: var(--green-active);
+            animation: blink 0.7s step-end infinite;
+            margin-left: 1px;
+        }
+
+        @media (max-width: 1200px) {
+            main { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="brand-container">
+            <div class="brand-icon">K</div>
+            <div>
+                <div class="brand-title">KRONOS // CLONE CONTROL</div>
+                <div class="brand-subtitle">Autonomous Mini Robot & Telephony Brain</div>
+            </div>
+        </div>
+
+        <div class="system-status-pills">
+            <div class="status-pill">
+                <span class="status-dot pulsing" id="dot-voice"></span>
+                <span>VOICE BUS: ACTIVE</span>
+            </div>
+            <div class="status-pill">
+                <span class="status-dot active" id="dot-robot"></span>
+                <span id="text-robot">ROBOT: CONNECTED</span>
+            </div>
+            <div class="status-pill">
+                <span class="status-dot active" id="dot-telephony"></span>
+                <span>CALL AGENT: READY</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- LEFT PANEL: Mini Robot Hardware & Telemetry -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🤖 Mini Robot Status</div>
+                    <div class="card-badge" id="badge-robot-mode">ESP32 / PI</div>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Battery Level</div>
+                        <div class="stat-value"><span id="val-battery">94</span><span class="stat-unit">%</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Audio Bus Latency</div>
+                        <div class="stat-value">18<span class="stat-unit">ms</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">VAD Engine</div>
+                        <div class="stat-value">RMS<span class="stat-unit">Adaptive</span></div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Workers</div>
+                        <div class="stat-value">3<span class="stat-unit">threads</span></div>
+                    </div>
+                </div>
+
+                <div class="card-title" style="margin-top: 10px; font-size: 0.8rem;">Physical Actions</div>
+                <div class="action-grid">
+                    <button class="btn-action" onclick="triggerAction('nod')">🙂 Nod Head</button>
+                    <button class="btn-action" onclick="triggerAction('blink')">💡 Blink LEDs</button>
+                    <button class="btn-action" onclick="triggerAction('look_left')">👈 Look Left</button>
+                    <button class="btn-action" onclick="triggerAction('look_right')">👉 Look Right</button>
+                </div>
+            </div>
+
+            <!-- Tone & Style Calibration -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">🎭 Persona Tone Tuner</div>
+                    <div class="card-badge">Krushna Clone</div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Hinglish Slang Ratio</span>
+                        <span id="val-hinglish">85%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value="85" oninput="document.getElementById('val-hinglish').innerText = this.value + '%'">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Casualness Level</span>
+                        <span id="val-casual">90%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value="90" oninput="document.getElementById('val-casual').innerText = this.value + '%'">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Reply Snappiness (Words)</span>
+                        <span id="val-length">12 words</span>
+                    </div>
+                    <input type="range" min="5" max="30" value="12" oninput="document.getElementById('val-length').innerText = this.value + ' words'">
+                </div>
+
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
+                    Active Slangs: <strong style="color: var(--cyan-neon);">bhai, haan, yaar, theek hai, badhiya, sahi hai</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: Arc Reactor Visualizer & Live Hearing -->
+        <div class="card" style="align-items: center; justify-content: space-between;">
+            <div class="card-header" style="width: 100%;">
+                <div class="card-title">🎙️ Hearing & Voice Loop</div>
+                <div class="card-badge" id="voice-state-badge">READY TO LISTEN</div>
+            </div>
+
+            <div class="orb-section">
+                <div class="hologram-orb-container">
+                    <div class="orb-ring ring-1"></div>
+                    <div class="orb-ring ring-2"></div>
+                    <div class="orb-ring ring-3"></div>
+                    <div class="core-orb" id="orb-core" onclick="toggleMicrophone()"></div>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 6px;">
+                    CLICK ORB TO TALK TO CLONE
+                </div>
+                <canvas id="visualizer-canvas"></canvas>
+            </div>
+
+            <!-- Live Speech Conversation -->
+            <div style="width: 100%;">
+                <div class="terminal-box" id="terminal-history">
+                    <div class="terminal-msg clone">
+                        <span class="sender">🤖 KRONOS CLONE</span>
+                        <div class="bubble">Haan bhai! Main ready hu. Tum bolo, robot se bolo, ya call aane do — main sab sambhal lunga.</div>
+                    </div>
+                </div>
+
+                <!-- Text input bar -->
+                <div style="display: flex; gap: 8px; margin-top: 12px; width: 100%;">
+                    <input type="text" id="user-text-input" placeholder="Type a message or question in Hinglish / English..." 
+                           style="flex: 1; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(0,240,255,0.25); background: rgba(0,0,0,0.5); color: #fff; font-family: var(--font-main); font-size: 0.9rem; outline: none;"
+                           onkeypress="if(event.key === 'Enter') sendTypedMessage()">
+                    <button class="btn btn-primary" style="flex: 0 0 90px;" onclick="sendTypedMessage()">Send ➔</button>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="btn-mic" onclick="toggleMicrophone()">
+                        <span id="btn-mic-icon">🎙️</span> <span id="btn-mic-text">Hold / Click to Speak</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="simulateTestSpeech()">
+                        ⚡ Simulate Voice Query
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Telephony Call Agent & Omnichannel Messages -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Telephony Live Call Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">📞 Telephony Call Agent</div>
+                    <div class="card-badge">AUTO-PICK ON</div>
+                </div>
+
+                <div class="call-card" id="call-card-box">
+                    <div class="call-header">
+                        <div>
+                            <div class="caller-id" id="caller-name">+91 98765 43210 (Rohan)</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Inbound Twilio Stream</div>
+                        </div>
+                        <span class="call-status-badge" id="call-status">STANDBY</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 8px;" id="call-preview-text">
+                        "Krushna free hai kya? Important kaam tha..."
+                    </div>
+                    <div style="font-size: 0.78rem; color: #ff77ee; margin-top: 6px; font-weight: 500;" id="call-clone-reply">
+                        Clone: "Haan bhai bol, Krushna thoda busy hai. Main uska AI clone hu, kya urgent hai?"
+                    </div>
+                </div>
+
+                <div class="btn-row" style="margin-top: 14px;">
+                    <button class="btn btn-secondary" onclick="simulateIncomingCall()">
+                        📞 Simulate Test Call
+                    </button>
+                </div>
+            </div>
+
+            <!-- Omnichannel Messages -->
+            <div class="card" style="flex: 1;">
+                <div class="card-header">
+                    <div class="card-title">📬 Omnichannel Feed</div>
+                    <div class="card-badge">LIVE SYNC</div>
+                </div>
+
+                <div class="channel-list">
+                    <div class="channel-item">
+                        <div class="channel-info">
+                            <div class="channel-icon" style="background: rgba(88, 101, 242, 0.2); color: #5865F2;">💬</div>
+                            <div>
+                                <div class="channel-name">Discord (@dev-server)</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">"Bhai PR merge kar diya?"</div>
+                            </div>
+                        </div>
+                        <div class="channel-time">2m ago</div>
+                    </div>
+
+                    <div class="channel-item">
+                        <div class="channel-info">
+                            <div class="channel-icon" style="background: rgba(36, 161, 222, 0.2); color: #24A1DE;">✈️</div>
+                            <div>
+                                <div class="channel-name">Telegram (Project Group)</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">"Meeting ka time kya hai?"</div>
+                            </div>
+                        </div>
+                        <div class="channel-time">15m ago</div>
+                    </div>
+
+                    <div class="channel-item">
+                        <div class="channel-info">
+                            <div class="channel-icon" style="background: rgba(234, 67, 53, 0.2); color: #EA4335;">✉️</div>
+                            <div>
+                                <div class="channel-name">Gmail (Recruiter Inquiry)</div>
+                                <div style="font-size: 0.72rem; color: var(--text-muted);">"Regarding the technical interview..."</div>
+                            </div>
+                        </div>
+                        <div class="channel-time">1h ago</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Canvas Audio Visualizer
+        const canvas = document.getElementById("visualizer-canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = canvas.parentElement.clientWidth || 360;
+        canvas.height = 60;
+
+        let isListening = false;
+        let isSpeaking = false;
+        let animPhase = 0;
+
+        function drawWaveform() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 2;
+            
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#00f0ff');
+            gradient.addColorStop(0.5, '#8a2be2');
+            gradient.addColorStop(1, '#00f0ff');
+            ctx.strokeStyle = gradient;
+
+            ctx.beginPath();
+            const sliceWidth = canvas.width / 40;
+            let x = 0;
+
+            for (let i = 0; i <= 40; i++) {
+                const amp = isListening ? 18 : (isSpeaking ? 22 : 4);
+                const freq = isListening ? 0.25 : 0.08;
+                const y = (canvas.height / 2) + Math.sin(i * freq + animPhase) * amp * Math.sin(i / 40 * Math.PI);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+                x += sliceWidth;
+            }
+
+            ctx.stroke();
+            animPhase += isListening || isSpeaking ? 0.15 : 0.03;
+            requestAnimationFrame(drawWaveform);
+        }
+        drawWaveform();
+
+        // Browser Speech Recognition (Web Speech API)
+        let recognition = null;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRec();
+            recognition.continuous = false;
+            recognition.lang = 'hi-IN'; // Hinglish / Hindi
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('orb-core').classList.add('listening');
+                document.getElementById('voice-state-badge').innerText = 'LISTENING...';
+                document.getElementById('voice-state-badge').style.background = 'rgba(0, 255, 136, 0.2)';
+                document.getElementById('voice-state-badge').style.color = '#00ff88';
+            };
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                appendMessage('user', text);
+                sendToClone(text);
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('orb-core').classList.remove('listening');
+                document.getElementById('voice-state-badge').innerText = 'READY TO LISTEN';
+                document.getElementById('voice-state-badge').style.background = 'rgba(0, 240, 255, 0.12)';
+                document.getElementById('voice-state-badge').style.color = 'var(--cyan-neon)';
+            };
+
+            recognition.onerror = () => {
+                isListening = false;
+                document.getElementById('orb-core').classList.remove('listening');
+            };
+        }
+
+        function toggleMicrophone() {
+            if (!recognition) {
+                simulateTestSpeech();
+                return;
+            }
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function sendTypedMessage() {
+            const input = document.getElementById('user-text-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            appendMessage('user', text);
+            sendToClone(text);
+        }
+
+        function appendMessage(sender, text, returnBubble = false) {
+            const history = document.getElementById('terminal-history');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `terminal-msg ${sender}`;
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.textContent = text;
+            const senderSpan = document.createElement('span');
+            senderSpan.className = 'sender';
+            senderSpan.textContent = sender === 'user' ? '👤 YOU' : '🤖 KRONOS CLONE';
+            msgDiv.appendChild(senderSpan);
+            msgDiv.appendChild(bubble);
+            history.appendChild(msgDiv);
+            history.scrollTop = history.scrollHeight;
+            if (returnBubble) return bubble;
+        }
+
+        async function sendToClone(query) {
+            isSpeaking = true;
+            document.getElementById('orb-core').classList.add('speaking');
+            document.getElementById('voice-state-badge').innerText = 'THINKING...';
+
+            // Create streaming bubble immediately
+            const history = document.getElementById('terminal-history');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'terminal-msg clone';
+            const senderSpan = document.createElement('span');
+            senderSpan.className = 'sender';
+            senderSpan.textContent = '🤖 KRONOS CLONE';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble streaming';
+            bubble.innerHTML = '<span class="cursor-blink">▋</span>';
+            msgDiv.appendChild(senderSpan);
+            msgDiv.appendChild(bubble);
+            history.appendChild(msgDiv);
+            history.scrollTop = history.scrollHeight;
+
+            let fullReply = '';
+
+            try {
+                const resp = await fetch('/api/chat/ask-stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: query, channel: 'voice' })
+                });
+
+                if (resp.ok && resp.body) {
+                    document.getElementById('voice-state-badge').innerText = 'SPEAKING...';
+                    const reader = resp.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop(); // keep incomplete line
+                        for (const line of lines) {
+                            if (line.startsWith('data:')) {
+                                try {
+                                    const parsed = JSON.parse(line.slice(5).trim());
+                                    if (parsed.token) {
+                                        fullReply += parsed.token;
+                                        bubble.textContent = fullReply;
+                                        bubble.innerHTML += '<span class="cursor-blink">▋</span>';
+                                        history.scrollTop = history.scrollHeight;
+                                    }
+                                    if (parsed.done) {
+                                        bubble.textContent = fullReply;
+                                        bubble.classList.remove('streaming');
+                                        speakAloud(fullReply);
+                                    }
+                                } catch(e) {}
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback to normal fetch
+                    const data = await resp.json().catch(() => ({}));
+                    fullReply = data.reply || `Haan bhai, samajh gaya: "${query}".`;
+                    bubble.textContent = fullReply;
+                    bubble.classList.remove('streaming');
+                    speakAloud(fullReply);
+                }
+            } catch (err) {
+                fullReply = `Haan bhai: "${query}". Sab sorted hai!`;
+                bubble.textContent = fullReply;
+                bubble.classList.remove('streaming');
+            } finally {
+                setTimeout(() => {
+                    isSpeaking = false;
+                    document.getElementById('orb-core').classList.remove('speaking');
+                    document.getElementById('voice-state-badge').innerText = 'READY TO LISTEN';
+                }, 1500);
+            }
+        }
+
+        function speakAloud(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'hi-IN';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function simulateTestSpeech() {
+            const queries = [
+                "Bhai free hai kya abhi?",
+                "Robot ka battery status kya hai?",
+                "Koi urgent message aaya tha kya?",
+                "Phone call pick karne ke liye ready hai?"
+            ];
+            const q = queries[Math.floor(Math.random() * queries.length)];
+            appendMessage('user', q);
+            sendToClone(q);
+        }
+
+        function triggerAction(action) {
+            const orb = document.getElementById('orb-core');
+            orb.style.transform = 'scale(1.2)';
+            setTimeout(() => orb.style.transform = 'scale(1)', 400);
+
+            // Notify backend robot bridge
+            fetch('/api/robot/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: action })
+            }).catch(() => {});
+
+            appendMessage('clone', `Executed Robot action: [${action.toUpperCase()}]`);
+        }
+
+        function simulateIncomingCall() {
+            const statusBadge = document.getElementById('call-status');
+            statusBadge.innerText = 'CALL CONNECTED';
+            statusBadge.style.background = '#00ff88';
+
+            document.getElementById('call-preview-text').innerHTML = '<em>Caller: "Bhai Krushna free hai kya? Kuch urgent discuss karna tha."</em>';
+            
+            setTimeout(() => {
+                document.getElementById('call-clone-reply').innerHTML = '<strong>Clone (Live Phone):</strong> "Haan bhai bol, Krushna abhi thoda busy hai. Main uska AI clone hu, kya urgent tha bata main message note kar leta hu."';
+                speakAloud("Haan bhai bol, Krushna abhi thoda busy hai. Main uska AI clone hu, kya urgent tha?");
+            }, 1200);
+
+            setTimeout(() => {
+                statusBadge.innerText = 'CALL LOGGED';
+                statusBadge.style.background = '#8a2be2';
+            }, 6000);
+        }
+    </script>
+</body>
+</html>

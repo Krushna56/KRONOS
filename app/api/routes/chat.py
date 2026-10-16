@@ -210,3 +210,125 @@ async def post_message(
     # Return user message
     return user_message
 
+
+# =========================================================
+# FAST CLONE ASK (FOR UI / ROBOT / VOICE / CALLS)
+# =========================================================
+
+from pydantic import BaseModel
+from typing import Optional
+import sys, io, logging as _logging
+from app.persona.clone_engine import clone_engine
+
+# Force UTF-8 stdout so emoji prints never crash on Windows cp1252
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+else:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+_clog = _logging.getLogger("clone.chat")
+
+class AskRequest(BaseModel):
+    message: str
+    channel: Optional[str] = "voice"
+
+@router.post("/ask")
+async def ask_clone(request: AskRequest):
+    """
+    Direct endpoint for Voice UI, Mini Robot, or Telephony to get a response
+    in Krushna's exact authentic tone.
+    """
+    _clog.info("[INBOUND][%s] %s", request.channel.upper(), request.message)
+
+    reply = await clone_engine.generate_reply(
+        incoming_message=request.message,
+        channel=request.channel or "voice"
+    )
+
+    _clog.info("[CLONE REPLY] %s", reply)
+    
+    return {"reply": reply, "channel": request.channel}
+
+
+# =========================================================
+# REAL-TIME STREAMING ENDPOINT (SSE) — token by token
+# =========================================================
+
+from fastapi.responses import StreamingResponse
+import asyncio
+import json
+
+@router.post("/ask-stream")
+async def ask_clone_stream(request: AskRequest):
+    """
+    Real-time SSE streaming endpoint. Streams reply word-by-word for instant UI updates.
+    """
+    _clog.info("[STREAM START][%s] %s", request.channel.upper(), request.message)
+
+    async def event_generator():
+        import os, httpx
+        streamed = False
+        gemini_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+
+        if gemini_key:
+            url = (
+                "https://generativelanguage.googleapis.com/v1beta/models/"
+                f"gemini-1.5-flash:streamGenerateContent?alt=sse&key={gemini_key}"
+            )
+            system = clone_engine.profile.to_system_prompt_directive()
+            if request.channel == "call":
+                system += "\n[CALL SCENARIO]: Be very brief and conversational."
+            payload = {
+                "contents": [{"parts": [{"text": f"{system}\n\nUser: {request.message}"}]}],
+                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 200}
+            }
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    async with client.stream("POST", url, json=payload) as resp:
+                        if resp.status_code == 200:
+                            buffer = ""
+                            async for line in resp.aiter_lines():
+                                if line.startswith("data:"):
+                                    raw = line[5:].strip()
+                                    if not raw or raw == "[DONE]":
+                                        continue
+                                    try:
+                                        chunk = json.loads(raw)
+                                        parts = (
+                                            chunk.get("candidates", [{}])[0]
+                                            .get("content", {})
+                                            .get("parts", [{}])
+                                        )
+                                        token = parts[0].get("text", "") if parts else ""
+                                        if token:
+                                            buffer += token
+                                            yield f"data: {json.dumps({'token': token, 'done': False})}\n\n"
+                                    except Exception:
+                                        pass
+                            _clog.info("[GEMINI STREAM DONE] %s chars", len(buffer))
+                            yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+                            streamed = True
+            except Exception as e:
+                _clog.warning("[STREAM] Gemini failed: %s", e)
+
+        if not streamed:
+            full_reply = await clone_engine.generate_reply(
+                incoming_message=request.message,
+                channel=request.channel or "voice"
+            )
+            _clog.info("[FALLBACK STREAM] %s", full_reply)
+            words = full_reply.split(" ")
+            for i, word in enumerate(words):
+                token = word + (" " if i < len(words) - 1 else "")
+                yield f"data: {json.dumps({'token': token, 'done': False})}\n\n"
+                await asyncio.sleep(0.04)
+            yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
+
+
+

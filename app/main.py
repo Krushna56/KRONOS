@@ -4,6 +4,15 @@ Phase 3: Social Agents
 """
 
 import sys
+import io
+
+# ── Force UTF-8 stdout on Windows (prevents UnicodeEncodeError for emoji logs) ──
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+elif hasattr(sys.stdout, 'buffer'):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+import sys
 from pathlib import Path
 
 # Ensure project root is on sys.path for absolute imports
@@ -26,6 +35,8 @@ from app.api.routes.message_routes import router as message_router
 from app.api.routes.social_routes import router as social_router
 from app.api.routes.draft_routes import router as draft_router
 from app.auth.auth_routes import router as auth_router
+from app.api.routes.telephony_routes import router as telephony_router
+from app.api.routes.robot_routes import router as robot_router
 from app.api.websocket import ws_routes
 
 # WebSocket connection manager
@@ -100,18 +111,27 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(health.router,   prefix="/api/health", tags=["Health"])
 app.include_router(auth.router,     prefix="/api/auth",   tags=["Auth"])
-app.include_router(chat.router,     prefix="/api/chat",   tags=["Chat"])
+app.include_router(chat.router,     tags=["Chat"])  # prefix already set in chat.py
 app.include_router(jobs.router,     prefix="/api/jobs",   tags=["Jobs"])
 app.include_router(ws_routes.router, tags=["WebSockets"])
 app.include_router(message_router)
 app.include_router(social_router)
 app.include_router(draft_router)
+app.include_router(telephony_router)
+app.include_router(robot_router)
 
 
 # ─────────────────────────────────────────────
-#  Core endpoints
-# ─────────────────────────────────────────────
-@app.get("/", tags=["Root"])
+from fastapi.responses import FileResponse, HTMLResponse
+
+@app.get("/dashboard", response_class=HTMLResponse, tags=["Dashboard"])
+@app.get("/", response_class=HTMLResponse, tags=["Dashboard"])
+async def dashboard_view():
+    """Interactive Mission Control Dashboard for AI Clone, Mini Robot & Telephony."""
+    dashboard_path = Path(__file__).resolve().parent / "templates" / "dashboard.html"
+    return FileResponse(dashboard_path)
+
+@app.get("/api/status", tags=["Root"])
 async def root_endpoint():
     """Application root metadata."""
     return {
@@ -120,7 +140,7 @@ async def root_endpoint():
         "version": "3.0.0",
         "status": "online",
         "docs_url": "/docs",
-        "phase": "Phase 3 — Social Agents",
+        "phase": "Phase 3 — Social Agents & Voice Clone",
     }
 
 
