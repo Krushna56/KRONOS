@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime, timezone
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.platform import Platform

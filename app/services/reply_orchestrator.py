@@ -216,22 +216,14 @@ class ReplyOrchestrator:
         """
         Builds a persona-aware prompt and calls the LLM service.
         """
-        # Tone rules per platform
-        tone_rules = {
-            "gmail": "Professional, formal. Use complete sentences and proper salutations.",
-            "linkedin": "Professional, warm. Concise and goal-oriented.",
-            "discord": "Casual and friendly. Short responses, conversational tone.",
-            "telegram": "Casual. Can use brief replies. Emojis acceptable."
-        }
-        tone = tone_rules.get(platform_name.lower(), "Natural and conversational.")
-
-        system_prompt = PromptBuilder.build_system_prompt("Krushna")
-        system_prompt += f"\n\nPlatform: {platform_name.upper()} | Conversation Type: {conversation_type}"
-        system_prompt += f"\nTone Rules: {tone}"
+        system_prompt = PromptBuilder.build_system_prompt(
+            platform=platform_name,
+            conversation_type=conversation_type,
+        )
 
         user_prompt = PromptBuilder.build_user_prompt(
             user_query=inbound_content,
-            context=f"Recent conversation history:\n{history_text}"
+            context=history_text,
         )
 
         return await llm_service.generate_response(

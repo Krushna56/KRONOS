@@ -26,6 +26,7 @@ sentence-transformers
 transformers
 torch
 torchaudio
+google-generativeai       # Gemini LLM API
 
 # Voice
 sounddevice>=0.5.2

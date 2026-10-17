@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     GMAIL_CREDENTIALS_JSON: str = ""
     LINKEDIN_ACCESS_TOKEN: str = ""
 
+    # ── AI API Keys ─────────────────────────────────────────────────
+    GEMINI_API_KEY: str = ""
+    GROQ_API_KEY: str = ""  # Optional: for ultra-low-latency STT via Groq Whisper
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
