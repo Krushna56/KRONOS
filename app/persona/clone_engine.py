@@ -109,33 +109,44 @@ class CloneEngine:
         return reply
 
     async def _call_gemini(self, system: str, user: str, api_key: str) -> Optional[str]:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-        # Build multi-turn contents from history
-        contents = [{"role": "user", "parts": [{"text": system}]},
-                    {"role": "model", "parts": [{"text": "Understood. Main Krushna ki tarah bolunga."}]}]
-        for h in self._history[-8:]:  # last 4 turns (8 messages)
-            role = "model" if h["role"] == "model" else "user"
-            contents.append({"role": role, "parts": [{"text": h["content"]}]})
-        # Ensure last entry is the current user message
+        # Format multi-turn contents cleanly
+        contents = []
+        for h in self._history[-6:]:
+            role = "model" if h.get("role") in ("model", "assistant") else "user"
+            # Avoid consecutive duplicate roles for Gemini API
+            if contents and contents[-1]["role"] == role:
+                continue
+            contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
+
+        # Ensure last entry is the current user prompt
         if not contents or contents[-1]["role"] != "user":
             contents.append({"role": "user", "parts": [{"text": user}]})
         else:
-            contents[-1]["parts"][0]["text"] = user  # replace with full prompt
+            contents[-1]["parts"] = [{"text": user}]
+
         payload = {
+            "systemInstruction": {"parts": [{"text": system}]},
             "contents": contents,
-            "generationConfig": {"temperature": 0.82, "maxOutputTokens": 250, "topP": 0.9}
+            "generationConfig": {"temperature": 0.85, "maxOutputTokens": 300, "topP": 0.9}
         }
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                candidates = data.get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    if parts:
-                        return parts[0].get("text", "").strip()
-            else:
-                logger.error(f"Gemini API error {resp.status_code}: {resp.text[:200]}")
+
+        models_to_try = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            for model_name in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+                try:
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                return parts[0].get("text", "").strip()
+                    else:
+                        logger.warning(f"Gemini API ({model_name}) HTTP {resp.status_code}: {resp.text[:120]}")
+                except Exception as ex:
+                    logger.warning(f"Gemini API ({model_name}) exception: {ex}")
         return None
 
     async def _call_groq(self, system: str, user: str, api_key: str) -> Optional[str]:

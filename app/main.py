@@ -6,11 +6,16 @@ Phase 3: Social Agents
 import sys
 import io
 
-# ── Force UTF-8 stdout on Windows (prevents UnicodeEncodeError for emoji logs) ──
+# ── Force UTF-8 stdout and stderr on Windows (prevents UnicodeEncodeError for emoji logs) ──
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 elif hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+elif hasattr(sys.stderr, 'buffer'):
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 import sys
 from pathlib import Path
@@ -170,4 +175,4 @@ logger.info(f"FastAPI application '{settings.APP_NAME}' initialized in '{setting
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
