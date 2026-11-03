@@ -269,10 +269,27 @@ async def ask_clone_stream(request: AskRequest):
         streamed = False
         gemini_key = (os.getenv("GEMINI_API_KEY") or "").strip()
 
+        # Check calendar intent for stream as well
+        calendar_keywords = [
+            "calendar", "calender", "schedule", "plan", "plans", "meeting", "meetings",
+            "aaj kya hai", "aaj kya karna", "agenda", "appointment", "routine", "aaj ka scene"
+        ]
+        q_lower = request.message.lower()
+        calendar_context = ""
+        if any(kw in q_lower for kw in calendar_keywords):
+            try:
+                from app.services.calendar_service import calendar_service
+                cal_summary = calendar_service.get_today_summary()
+                calendar_context = f"\n[LIVE GOOGLE CALENDAR SCHEDULE FOR TODAY]:\n{cal_summary}\nAnswer the user based on these exact events from their Google Calendar."
+            except Exception as e:
+                logger.warning(f"Failed to fetch calendar context for stream: {e}")
+
         if gemini_key:
             system = clone_engine.profile.to_system_prompt_directive()
             if request.channel == "call":
                 system += "\n[CALL SCENARIO]: Be very brief and conversational."
+            if calendar_context:
+                system += f"\n{calendar_context}"
             payload = {
                 "systemInstruction": {"parts": [{"text": system}]},
                 "contents": [{"role": "user", "parts": [{"text": request.message}]}],

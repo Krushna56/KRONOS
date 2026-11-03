@@ -63,6 +63,20 @@ class CloneEngine:
                 f"Speak naturally, cheerfully, and concisely.\n"
             )
 
+        # Check for calendar/schedule intents
+        calendar_keywords = [
+            "calendar", "calender", "schedule", "plan", "plans", "meeting", "meetings",
+            "aaj kya hai", "aaj kya karna", "agenda", "appointment", "routine", "aaj ka scene"
+        ]
+        q_lower = incoming_message.lower()
+        if any(kw in q_lower for kw in calendar_keywords):
+            try:
+                from app.services.calendar_service import calendar_service
+                calendar_summary = calendar_service.get_today_summary()
+                context = f"[LIVE GOOGLE CALENDAR SCHEDULE TODAY]: {calendar_summary}\n" + (context or "")
+            except Exception as ex:
+                logger.warning(f"Failed to fetch calendar context: {ex}")
+
         user_prompt = f"Inbound query from {caller_name or 'Friend'}: \"{incoming_message}\""
         if context:
             user_prompt += f"\nPrevious Context: {context}"
@@ -242,6 +256,15 @@ class CloneEngine:
 
         if any(w in q for w in ["message", "mail", "discord", "telegram", "email", "unread"]):
             return "Saare platforms (Discord, Telegram, Gmail) sync ho rahe hain. Koi critical alert nahi hai abhi tak."
+
+        # Calendar & Today's plans
+        if any(w in q for w in ["calendar", "calender", "schedule", "plan", "plans", "meeting", "meetings", "aaj kya hai", "aaj kya karna"]):
+            try:
+                from app.services.calendar_service import calendar_service
+                return calendar_service.get_today_summary()
+            except Exception as e:
+                logger.error(f"Error in calendar fallback: {e}")
+                return "Bhai calendar fetch karne me issue hua, ek baar credentials aur network check kar lo."
 
         if any(w in q for w in ["call", "phone", "twilio"]):
             return "Telephony agent ready hai! Twilio stream open hai, koi bhi call aayegi toh main automatically attend kar lunga."

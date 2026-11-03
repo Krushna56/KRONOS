@@ -49,6 +49,15 @@ class Settings(BaseSettings):
     GMAIL_CREDENTIALS_JSON: str = ""
     LINKEDIN_ACCESS_TOKEN: str = ""
 
+    # ── Google Calendar ─────────────────────────────────────────────
+    GOOGLE_CALENDAR_CREDENTIALS_JSON: str = "Credintials.json"
+    GOOGLE_CALENDAR_TOKEN_JSON: str = "calendar_token.json"
+
+    # ── Telephony (Twilio) ──────────────────────────────────────────
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+
     # ── AI API Keys ─────────────────────────────────────────────────
     GEMINI_API_KEY: str = ""
     GROQ_API_KEY: str = ""  # Optional: for ultra-low-latency STT via Groq Whisper

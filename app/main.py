@@ -1,6 +1,6 @@
 """
 AI Clone — FastAPI Application Entry Point
-Phase 3: Social Agents
+Phase 3: Social Agents 
 """
 
 import sys
@@ -42,6 +42,7 @@ from app.api.routes.draft_routes import router as draft_router
 from app.auth.auth_routes import router as auth_router
 from app.api.routes.telephony_routes import router as telephony_router
 from app.api.routes.robot_routes import router as robot_router
+from app.api.routes.calendar_routes import router as calendar_router
 from app.api.websocket import ws_routes
 
 # WebSocket connection manager
@@ -124,6 +125,7 @@ app.include_router(social_router)
 app.include_router(draft_router)
 app.include_router(telephony_router)
 app.include_router(robot_router)
+app.include_router(calendar_router)
 
 
 # ─────────────────────────────────────────────
