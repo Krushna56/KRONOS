@@ -24,13 +24,9 @@ class Base(DeclarativeBase):
     metadata = metadata
 
 
-# Import all models here so that they register on Base.metadata for Alembic autogenerate
+# Import core DB models so they register on Base.metadata for Alembic autogenerate.
+# NOTE: Social models (Platform, Conversation, etc.) are imported separately by
+# app/models/__init__.py — importing them here caused a circular import.
 from app.db.models.user import User
 from app.db.models.conversation import ChatConversation, ChatMessage
 from app.db.models.memory import MemoryEntry
-from app.models.platform import Platform
-from app.models.social_account import SocialAccount
-from app.models.conversation import Conversation
-from app.models.conversation_participant import ConversationParticipant
-from app.models.message import Message
-from app.models.attachment import Attachment

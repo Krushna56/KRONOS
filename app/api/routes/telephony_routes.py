@@ -7,7 +7,7 @@ and bidirectional real-time audio WebSocket streams.
 
 import os
 from fastapi import APIRouter, Request, Response, WebSocket
-from app.telephony.call_agent import telephony_agent
+from app.tasks.telephony.call_agent import telephony_agent
 from app.persona.clone_engine import clone_engine
 from app.core.logger import logger
 
