@@ -1,4 +1,4 @@
-# AI_REPLICA — Krushna's Personal AI Assistant (KRONOS)
+# KRONOS — Krushna's Personal AI Assistant (KRONOS)
 
 ## Status: ⚙️ Phase 3 Development (v3.0.0-dev)
 
@@ -8,7 +8,7 @@
 
 ```
 ┌─────────────────────────────────────────┐
-│           JARVIS AI System              │
+│           KRONOS AI System              │
 ├─────────────────────────────────────────┤
 │  Core: Brain│Memory│Persona│Reasoning  │
 ├─────────────────────────────────────────┤
@@ -88,7 +88,7 @@ GMAIL_PASS=...
 POSTGRESQL_URL=postgresql://...
 ```
 
-### 3. Run JARVIS
+### 3. Run KRONOS
 
 ```bash
 # Interactive CLI
