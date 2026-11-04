@@ -67,6 +67,23 @@ async def telephony_gather(request: Request):
 </Response>"""
         return Response(content=twiml, media_type="application/xml")
 
+    # Immediate Stop / Hangup Command Interceptor
+    stop_phrases = [
+        "stop talking", "stop", "shut up", "be quiet", "quiet", "silence",
+        "chup", "chup ho ja", "chup raho", "shant", "shant ho ja", "shant raho",
+        "bas karo", "bolna band", "ruk ja", "ruko", "hold on", "pause",
+        "hang up", "cut the call", "call kato", "phone kato", "bye", "goodbye", "alvida", "tata"
+    ]
+    s_lower = speech_result.lower().strip()
+    if any(phrase in s_lower for phrase in stop_phrases):
+        logger.info(f"🛑 [STOP COMMAND] Caller requested stop/hangup: \"{speech_result}\"")
+        twiml = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say voice="Polly.Aditi">Theek hai bhai, main chup hota hu. Call cut kar raha hu. Bye!</Say>
+    <Hangup/>
+</Response>"""
+        return Response(content=twiml, media_type="application/xml")
+
     # Generate reply matching Krushna's authentic clone persona
     reply = await clone_engine.generate_reply(
         incoming_message=speech_result,

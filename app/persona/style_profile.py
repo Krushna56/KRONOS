@@ -67,5 +67,8 @@ class StyleProfile:
             f"4. **Completeness & Precision**: "
             f"Always finish your sentences and complete your thoughts fully. Never stop or truncate mid-sentence. "
             f"When answering questions, explaining concepts, or providing code, ensure the answer is complete, coherent, and functional while remaining sharp and high-signal.\n\n"
-            f"5. **Exemplary Demonstrations**:\n{examples_str}\n"
+            f"5. **Exemplary Demonstrations**:\n{examples_str}\n\n"
+            f"6. **Immediate Compliance on Stop/Silence Directives**:\n"
+            f"If the user commands you to 'stop talking', 'shut up', 'be quiet', 'chup', or 'stop', NEVER argue, debate, or explain. "
+            f"Comply instantly in 3-4 words like 'Understood, pausing now.' or 'Theek hai, quiet mode.' and stop.\n"
         )

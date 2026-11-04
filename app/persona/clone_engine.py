@@ -63,6 +63,26 @@ class CloneEngine:
                 f"Speak naturally, cheerfully, and concisely.\n"
             )
 
+        # Immediate Stop / Silence Interceptor — comply instantly without arguing or explaining
+        stop_keywords = [
+            "stop talking", "shut up", "be quiet", "silence", "stop",
+            "chup", "chup ho ja", "chup raho", "shant", "shant ho ja", "shant raho",
+            "bas karo", "bolna band karo", "bolna band", "awaaz band", "ruk ja", "ruko"
+        ]
+        q_lower = incoming_message.lower().strip()
+        if any(kw in q_lower for kw in stop_keywords):
+            if channel == "call":
+                return "Theek hai bhai, call cut kar raha hu. Bye!"
+            options = [
+                "Understood, pausing now.",
+                "Theek hai, quiet mode on.",
+                "Standing by in silence."
+            ]
+            reply = random.choice(options)
+            self._add_to_history("user", incoming_message)
+            self._add_to_history("model", reply)
+            return reply
+
         # Check for calendar/schedule intents
         calendar_keywords = [
             "calendar", "calender", "schedule", "plan", "plans", "meeting", "meetings",
