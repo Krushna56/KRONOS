@@ -1,20 +1,28 @@
+# Reads POSTGRES_* from your .env file (see .env.example). No secrets in git.
 services:
 
   postgres:
     image: pgvector/pgvector:pg16
     container_name: ai_clone_db
-
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Ai@5605
-      POSTGRES_DB: aiclone
-
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-aiclone}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"   # bound to localhost only
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
   redis:
-    image: redis:latest
+    image: redis:7
     container_name: ai_clone_redis
-
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"   # bound to localhost only
+    volumes:
+      - redisdata:/data
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,40 +1,35 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 from sqlalchemy.future import select
 
 from app.db.session import get_db
 from app.db.models.user import User
 from app.schemas.user_schema import UserCreate, UserResponse
 from app.schemas.auth_schema import Token
-from app.core.security import hash_password, verify_password, create_access_token, decode_access_token
+from app.core.config import settings
+from app.core.security import hash_password, verify_password, create_access_token
+from app.auth.jwt_bearer import get_current_user  # re-exported for existing imports
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
-
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User:
-    """Dependency to retrieve the currently authenticated user from a JWT."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    username = decode_access_token(token)
-    if username is None:
-        raise credentials_exception
-        
-    query = select(User).where(User.username == username)
-    result = await db.execute(query)
-    user = result.scalars().first()
-    if user is None:
-        raise credentials_exception
-    return user
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
-    """Register a new user in the system."""
+    """
+    Register a new user.
+
+    KRONOS is a personal assistant: after the first (owner) account exists,
+    registration is closed unless ALLOW_REGISTRATION=true.
+    """
+    user_count = (await db.execute(select(func.count()).select_from(User))).scalar_one()
+    if user_count > 0 and not settings.ALLOW_REGISTRATION:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration is closed",
+        )
+
     # Check if username or email already exists
     query = select(User).where((User.username == user_in.username) | (User.email == user_in.email))
     result = await db.execute(query)
@@ -44,9 +39,6 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username or email already registered"
         )
-
-    print("PASSWORD:", user_in.password)
-    print("LENGTH:", len(user_in.password))
 
     hashed_pwd = hash_password(user_in.password)
     new_user = User(

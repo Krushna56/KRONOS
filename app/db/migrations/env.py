@@ -34,7 +34,10 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 # Set sqlalchemy.url from our application configuration dynamically
-config.set_main_option("sqlalchemy.url", "postgresql+asyncpg://postgres:Ai%405605@127.0.0.1:5433/aiclone".replace("%", "%%"))
+from app.core.config import settings  # noqa: E402
+
+# "%" must be escaped for ConfigParser interpolation (e.g. URL-encoded passwords)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 
 def run_migrations_offline() -> None:

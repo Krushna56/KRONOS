@@ -875,6 +875,35 @@
     </main>
 
     <script>
+        // ── Auth: JWT kept in sessionStorage; prompts for login when missing/expired ──
+        async function ensureToken(force = false) {
+            let token = force ? null : sessionStorage.getItem('kronos_token');
+            if (token) return token;
+            const username = window.prompt('KRONOS login — username:');
+            if (!username) throw new Error('login cancelled');
+            const password = window.prompt('KRONOS login — password:');
+            if (!password) throw new Error('login cancelled');
+            const body = new URLSearchParams({ username, password });
+            const r = await fetch('/api/auth/login', { method: 'POST', body });
+            if (!r.ok) throw new Error('Login failed');
+            token = (await r.json()).access_token;
+            sessionStorage.setItem('kronos_token', token);
+            return token;
+        }
+
+        async function authFetch(url, options = {}) {
+            const doFetch = async (force) => {
+                const token = await ensureToken(force);
+                const headers = Object.assign({}, options.headers, { 'Authorization': 'Bearer ' + token });
+                return fetch(url, Object.assign({}, options, { headers }));
+            };
+            let resp = await doFetch(false);
+            if (resp.status === 401) {          // expired/invalid token -> re-login once
+                sessionStorage.removeItem('kronos_token');
+                resp = await doFetch(true);
+            }
+            return resp;
+        }
         // Canvas Audio Visualizer
         const canvas = document.getElementById("visualizer-canvas");
         const ctx = canvas.getContext("2d");
@@ -1011,7 +1040,7 @@
             let fullReply = '';
 
             try {
-                const resp = await fetch('/api/chat/ask-stream', {
+                const resp = await authFetch('/api/chat/ask-stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: query, channel: 'voice' })
@@ -1095,7 +1124,7 @@
             setTimeout(() => orb.style.transform = 'scale(1)', 400);
 
             // Notify backend robot bridge
-            fetch('/api/robot/action', {
+            authFetch('/api/robot/action', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: action })

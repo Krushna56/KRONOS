@@ -2,12 +2,15 @@ import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.websocket.manager import manager
 from app.core.logger import logger
+from app.core.guards import authorize_user_ws
 
 router = APIRouter()
 
 @router.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
-    """WebSocket connection endpoint at /ws/{client_id}."""
+    """WebSocket connection endpoint at /ws/{client_id}. Requires ?token=<JWT>."""
+    if await authorize_user_ws(websocket) is None:
+        return
     await manager.connect(client_id, websocket)
     try:
         # Send initial welcome packet
@@ -44,4 +47,4 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             await manager.send_personal_message(response, websocket)
             
     except WebSocketDisconnect:
-        manager.disconnect(client_id, websocket)
+        manager.disconnect(websocket)

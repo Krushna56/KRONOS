@@ -28,7 +28,7 @@ if str(project_root) not in sys.path:
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
@@ -39,7 +39,6 @@ from app.api.routes import health, auth, chat, jobs
 from app.api.routes.message_routes import router as message_router
 from app.api.routes.social_routes import router as social_router
 from app.api.routes.draft_routes import router as draft_router
-from app.auth.auth_routes import router as auth_router
 from app.api.routes.telephony_routes import router as telephony_router
 from app.api.routes.robot_routes import router as robot_router
 from app.api.routes.calendar_routes import router as calendar_router
@@ -47,6 +46,7 @@ from app.api.websocket import ws_routes
 
 # WebSocket connection manager
 from app.websocket.manager import manager as ws_manager
+from app.core.guards import authorize_user_ws
 
 # Agent framework
 from app.core.dependencies import manager as agent_manager
@@ -76,7 +76,7 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 AI Clone starting up — connecting social agents...")
 
     # Start background AI runtime
-    asyncio.create_task(ai_runtime())
+    runtime_task = asyncio.create_task(ai_runtime())
 
     # Connect all registered agents
     await agent_manager.connect_all()
@@ -86,6 +86,7 @@ async def lifespan(app: FastAPI):
 
     # Graceful shutdown
     logger.info("🛑 AI Clone shutting down — disconnecting agents...")
+    runtime_task.cancel()
     await agent_manager.disconnect_all()
     logger.info("✅ All agents disconnected. Goodbye.")
 
@@ -105,16 +106,15 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Robot-Key"],
 )
 
 # ─────────────────────────────────────────────
 #  Routers
 # ─────────────────────────────────────────────
-app.include_router(auth_router)
 app.include_router(health.router,   prefix="/api/health", tags=["Health"])
 app.include_router(auth.router,     prefix="/api/auth",   tags=["Auth"])
 app.include_router(chat.router,     tags=["Chat"])  # prefix already set in chat.py
@@ -159,13 +159,17 @@ async def get_agents_health():
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    """Primary WebSocket endpoint for real-time communication."""
+    """Primary WebSocket endpoint for real-time communication. Requires ?token=<JWT>."""
+    if await authorize_user_ws(websocket) is None:
+        return
     await ws_manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
             await ws_manager.send_message(f"AI received: {data}", websocket)
-    except Exception:
+    except WebSocketDisconnect:
+        pass
+    finally:
         ws_manager.disconnect(websocket)
 
 

@@ -6,7 +6,11 @@ and bidirectional real-time audio WebSocket streams.
 """
 
 import os
-from fastapi import APIRouter, Request, Response, WebSocket
+from xml.sax.saxutils import escape as xml_escape
+
+from fastapi import APIRouter, Depends, Request, Response, WebSocket
+from app.auth.jwt_bearer import get_current_user
+from app.core.guards import verify_twilio_request
 from app.tasks.telephony.call_agent import telephony_agent
 from app.persona.clone_engine import clone_engine
 from app.core.logger import logger
@@ -14,7 +18,7 @@ from app.core.logger import logger
 router = APIRouter(prefix="/api/telephony", tags=["Telephony"])
 
 
-@router.post("/incoming")
+@router.post("/incoming", dependencies=[Depends(verify_twilio_request)])
 async def incoming_call_webhook(request: Request):
     """
     Twilio Webhook: Called immediately when a phone number receives an inbound call.
@@ -44,7 +48,7 @@ async def incoming_call_webhook(request: Request):
     return Response(content=twiml_response, media_type="application/xml")
 
 
-@router.post("/gather")
+@router.post("/gather", dependencies=[Depends(verify_twilio_request)])
 async def telephony_gather(request: Request):
     """
     Twilio Speech Callback: Receives caller's transcribed words,
@@ -94,7 +98,7 @@ async def telephony_gather(request: Request):
     logger.info(f"🤖 [CALL CLONE REPLY] to {caller}: \"{reply}\"")
 
     # Sanitize XML special characters for TwiML
-    clean_reply = reply.replace("&", "and").replace("<", "").replace(">", "").replace('"', "'")
+    clean_reply = xml_escape(reply)
 
     twiml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -116,7 +120,7 @@ async def telephony_media_stream(websocket: WebSocket):
 
 
 @router.get("/active-calls")
-async def get_active_calls():
+async def get_active_calls(current_user=Depends(get_current_user)):
     """
     Get list of active ongoing phone calls and turn count.
     """

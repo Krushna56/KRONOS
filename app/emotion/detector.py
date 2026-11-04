@@ -1,13 +1,26 @@
-from transformers import pipeline
+import logging
+from functools import lru_cache
 
-emotion_pipeline = pipeline(
-    "text-classification",
-    model="j-hartmann/emotion-english-distilroberta-base"
-)
+logger = logging.getLogger(__name__)
 
-def detect_emotion(text):
-    result = emotion_pipeline(text)
-    return result[0]["label"]
+MODEL_ID = "j-hartmann/emotion-english-distilroberta-base"
 
-    
-    
+
+@lru_cache(maxsize=1)
+def _get_pipeline():
+    """Lazy-load the classifier on first use (not at import) so the server
+    starts fast and still runs offline / without `transformers` installed."""
+    try:
+        from transformers import pipeline
+
+        return pipeline("text-classification", model=MODEL_ID)
+    except Exception as e:  # missing dep, no network, etc.
+        logger.warning(f"[Emotion] classifier unavailable, defaulting to 'neutral': {e}")
+        return None
+
+
+def detect_emotion(text: str) -> str:
+    classifier = _get_pipeline()
+    if classifier is None or not text:
+        return "neutral"
+    return classifier(text)[0]["label"]

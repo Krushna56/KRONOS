@@ -232,7 +232,7 @@ class AskRequest(BaseModel):
     channel: Optional[str] = "voice"
 
 @router.post("/ask")
-async def ask_clone(request: AskRequest):
+async def ask_clone(request: AskRequest, current_user: User = Depends(get_current_user)):
     """
     Direct endpoint for Voice UI, Mini Robot, or Telephony to get a response
     in Krushna's exact authentic tone.
@@ -266,7 +266,7 @@ import asyncio
 import json
 
 @router.post("/ask-stream")
-async def ask_clone_stream(request: AskRequest):
+async def ask_clone_stream(request: AskRequest, current_user: User = Depends(get_current_user)):
     """
     Real-time SSE streaming endpoint. Streams reply word-by-word for instant UI updates.
     """

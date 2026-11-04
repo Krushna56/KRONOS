@@ -3,6 +3,8 @@ fastapi
 uvicorn
 python-dotenv
 pydantic-settings
+pydantic[email]   # EmailStr in user schemas (email-validator)
+python-multipart   # required by OAuth2PasswordRequestForm (login)
 loguru
 
 # Database
@@ -37,6 +39,7 @@ silero-vad
 openwakeword
 onnxruntime
 librosa
+pyttsx3
 
 # ──────────────────────────────────────────────
 # Platform Agent Dependencies — Module 10

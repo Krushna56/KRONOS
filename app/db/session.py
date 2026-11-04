@@ -6,7 +6,7 @@ from app.db.base import Base
 # Create standard SQLAlchemy async engine using database URL from config settings
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=True
+    echo=False  # set True temporarily when debugging SQL
 )
 
 AsyncSessionLocal = async_sessionmaker(

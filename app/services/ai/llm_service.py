@@ -26,13 +26,15 @@ class LLMService:
     """
     Async LLM service backed by Google Gemini Flash.
 
-    Model: gemini-2.0-flash (fast, low-cost, high quality)
+    Model name comes from settings.GEMINI_MODEL (env: GEMINI_MODEL) so a retired
+    model never requires a code change.
     Fallback: Returns a polite error string if the API is unavailable.
     """
 
-    MODEL_NAME = "gemini-3.8-flash"
+    DEFAULT_MODEL = "gemini-2.5-flash"
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
+        self.model_name = model_name or self._resolve_model_name()
         # Prefer explicit key → settings → env var
         if api_key:
             self.api_key = api_key
@@ -47,9 +49,9 @@ class LLMService:
         if _GEMINI_AVAILABLE and self.api_key:
             try:
                 genai.configure(api_key=self.api_key)
-                self._model = genai.GenerativeModel(self.MODEL_NAME)
+                self._model = genai.GenerativeModel(self.model_name)
                 logger.info(
-                    f"[LLMService] Gemini '{self.MODEL_NAME}' initialized."
+                    f"[LLMService] Gemini '{self.model_name}' initialized."
                 )
             except Exception as e:
                 logger.error(f"[LLMService] Failed to initialize Gemini model: {e}")
@@ -57,6 +59,14 @@ class LLMService:
             logger.warning(
                 "[LLMService] GEMINI_API_KEY not set — LLM will return fallback responses."
             )
+
+    @classmethod
+    def _resolve_model_name(cls) -> str:
+        try:
+            from app.core.config import settings
+            return settings.GEMINI_MODEL or cls.DEFAULT_MODEL
+        except Exception:
+            return os.getenv("GEMINI_MODEL", cls.DEFAULT_MODEL)
 
     async def generate_response(
         self,
@@ -85,11 +95,13 @@ class LLMService:
             )
 
         try:
-            # Build the full prompt: system + user
-            full_prompt = ""
+            # Use a proper system instruction instead of string-concatenating it
+            # into the user turn (better persona adherence, harder to override).
+            model = self._model
             if system_prompt:
-                full_prompt = f"{system_prompt}\n\n---\n\n"
-            full_prompt += prompt
+                model = genai.GenerativeModel(
+                    self.model_name, system_instruction=system_prompt
+                )
 
             generation_config = genai.types.GenerationConfig(
                 temperature=temperature,
@@ -97,8 +109,8 @@ class LLMService:
             )
 
             # Gemini async API
-            response = await self._model.generate_content_async(
-                full_prompt,
+            response = await model.generate_content_async(
+                prompt,
                 generation_config=generation_config,
             )
 

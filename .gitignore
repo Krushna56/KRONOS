@@ -1,8 +1,21 @@
+# Secrets / credentials — never commit
 .env
-*.pyc
-.docker-compose.yml
-calendar_token.json
-*.wav
-__pycache__/
-
+.env.*
+!.env.example
+credentials.json
 Credintials.json
+client_secret*.json
+*token*.json
+calendar_token.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Local data
+*.wav
+*.log

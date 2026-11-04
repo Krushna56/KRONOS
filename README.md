@@ -1,263 +1,91 @@
-# KRONOS — Krushna's Personal AI Assistant (KRONOS)
+# KRONOS — a personal AI assistant
 
-## Status: ⚙️ Phase 3 Development (v3.0.0-dev)
+KRONOS is a FastAPI backend for a personal "AI clone" / JARVIS-style assistant: it talks to
+you by voice, replies on your behalf across platforms (with approval modes), keeps memory
+in Postgres + pgvector, and can drive a small robot and answer phone calls.
 
-**AI_REPLICA** is a comprehensive, modular AI assistant system built for Krushna Kumbhar. We are currently implementing **Phase 3 - Social Agents** and enhancing the **Voice Processing Layer** (including Speech Detection and Wake Word Engines).
+> **Status: Phase 3 (in development).** Some pieces are working, others are scaffolding.
+> See [What works today](#what-works-today) for an honest breakdown.
 
-## Quick Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│           KRONOS AI System              │
-├─────────────────────────────────────────┤
-│  Core: Brain│Memory│Persona│Reasoning  │
-├─────────────────────────────────────────┤
-│  Agents: Social│Mail│Job│Desktop│Voice │
-├─────────────────────────────────────────┤
-│  Integrations: Discord│LinkedIn│Gmail   │
-├─────────────────────────────────────────┤
-│  UI: RingUI│Overlay│Notifications       │
-├─────────────────────────────────────────┤
-│  Storage: PostgreSQL│Vectors│Cache      │
-├─────────────────────────────────────────┤
-│  Runtime: EventBus│Workers│Orchestrator │
-└─────────────────────────────────────────┘
+app/
+├── main.py                 FastAPI entry point (lifespan connects the social agents)
+├── api/                    REST + WebSocket routes (auth, chat, social, drafts, robot, telephony, calendar)
+├── agents/                 BaseAgent / Registry / Manager + platforms: discord, telegram, gmail, linkedin
+├── services/               LLM (Gemini), prompt builder, reply orchestrator, memory, calendar
+├── persona/                Style profile, tone analysis, clone engine (replies in your voice)
+├── voice/                  Audio bus, Silero VAD, wake word, STT (Google/Groq Whisper), TTS
+├── robot/                  Mini-robot WebSocket bridge
+├── tasks/                  Reply queue, social sync, scheduler, telephony call agent
+├── db/ models/ repositories/   SQLAlchemy models, Alembic migrations, data access
+├── auth/ core/             JWT auth, config, guards (robot key, Twilio signature), logging
+└── templates/dashboard.html   Mission-control dashboard
+tests/                      pytest suite
+docs/archive/               Older design notes (historical; structure has since changed)
 ```
 
-## Features
-
-✅ **Core Intelligence**
-
-- GPT-4 powered AI engine
-- Intelligent decision routing
-- Adaptive learning system
-- Pattern recognition
-
-✅ **6 Specialized Agents**
-
-- Social media management
-- Email automation
-- Job search & applications
-- Desktop control
-- Voice interactions
-- Calendar & reminders
-
-✅ **5 Service Integrations**
-
-- Discord bot
-- LinkedIn API
-- Gmail integration
-- Telegram messaging
-- Web automation
-
-✅ **Advanced Storage**
-
-- PostgreSQL relational DB
-- Vector embeddings (semantic search)
-- Redis caching layer
-
-✅ **Runtime Orchestration**
-
-- Event-driven architecture
-- Thread pool workers
-- System orchestration engine
-
-## Setup
-
-### 1. Installation
+## Quick start
 
 ```bash
-# Create virtual environment
 python -m venv venv
-venv\Scripts\activate  # Windows
-
-# Install dependencies
+venv\Scripts\activate            # Windows   (Linux/macOS: source venv/bin/activate)
 pip install -r requirements.txt
+
+cp .env.example .env              # then edit .env — set real secrets (see comments inside)
+docker compose up -d              # Postgres (pgvector) + Redis
+alembic upgrade head              # create tables
+
+python -m app.main                # or: uvicorn app.main:app --reload
 ```
 
-### 2. Configuration
+Open <http://127.0.0.1:8000/docs> (API) or <http://127.0.0.1:8000/> (dashboard).
 
-Create `.env` in project root:
+First run: `POST /api/auth/register` creates the **owner** account. Registration then closes
+automatically (set `ALLOW_REGISTRATION=true` to reopen). Log in at `POST /api/auth/login`.
 
-```
-OPENAI_API_KEY=sk-...
-DISCORD_TOKEN=...
-TELEGRAM_TOKEN=...
-GMAIL_USER=...
-GMAIL_PASS=...
-POSTGRESQL_URL=postgresql://...
-```
+## Security model
 
-### 3. Run KRONOS
+- **JWT** (signed with `JWT_SECRET`) protects all user-facing routes, and `?token=<JWT>` protects user WebSockets.
+- **Robot** endpoints require `ROBOT_API_KEY` (`X-Robot-Key` header or `?key=`). Unset = disabled.
+- **Twilio webhooks** are verified via `X-Twilio-Signature` using `TWILIO_AUTH_TOKEN`.
+- **CORS** is limited to `CORS_ORIGINS` (no wildcard).
+- In `APP_ENV=production` the app refuses to start with a weak `JWT_SECRET`.
+- Auto-replies default to **SUGGEST** (drafts need your approval). `AUTO` mode sends as you; use it deliberately.
 
-```bash
-# Interactive CLI
-python -m AI_REPLICA.main
+## What works today
 
-# Or programmatic
-from AI_REPLICA.main import init_jarvis
-jarvis = init_jarvis()
-response = jarvis.process_input("What's on my calendar?")
-```
-
-## Architecture Highlights
-
-### Modular Design
-
-- **Separation of concerns**: Each module has single responsibility
-- **Easy to extend**: Add new agents, integrations, or storage backends
-- **Testable**: Each component can be tested independently
-
-### Scalability
-
-- **Thread pool workers** for concurrent operations
-- **Caching layer** for performance
-- **Vector database** for semantic search at scale
-- **Event bus** for loose coupling
-
-### Maintainability
-
-- **Comprehensive logging** across all systems
-- **Type hints** for better code clarity
-- **Documentation** at module and function level
-- **Clear directory structure**
-
-## Core Components
-
-| Module        | Purpose           | Key Classes                             |
-| ------------- | ----------------- | --------------------------------------- |
-| **Brain**     | AI reasoning      | AIEngine, DecisionMaker, LearningSystem |
-| **Memory**    | Data storage      | Memory, TaskManager                     |
-| **Persona**   | Identity          | Personality, Tone                       |
-| **Reasoning** | Pattern learning  | PatternLearner                          |
-| **Autonomy**  | Activity tracking | ActivityTracker                         |
-
-## Usage Examples
-
-### Basic Chat
-
-```python
-from AI_REPLICA.main import init_jarvis
-
-jarvis = init_jarvis()
-response = jarvis.process_input("Hello, how are you?")
-print(response)
-```
-
-### Task Management
-
-```python
-# Create task
-task = jarvis.task_manager.create_task("Review code", priority=3)
-
-# Complete task
-jarvis.task_manager.complete_task(task["id"])
-
-# List tasks
-pending = jarvis.task_manager.list_tasks(status="pending")
-```
-
-### Memory Operations
-
-```python
-# Store fact
-jarvis.memory.store_fact("favorite_language", "Python")
-
-# Recall fact
-lang = jarvis.memory.recall_fact("favorite_language")
-
-# Record event
-jarvis.memory.record_event("learning_started", "Started learning ML")
-```
-
-### Pattern Analysis
-
-```python
-# Analyze interaction patterns
-stats = jarvis.pattern_learner.analyze()
-print(f"Total interactions: {stats['total_interactions']}")
-```
+| Area | State |
+|---|---|
+| Auth, DB models, migrations, health | ✅ working |
+| Agent framework + health checks | ✅ working (needs platform tokens to connect) |
+| Reply orchestrator (AUTO/SUGGEST/APPROVAL/MANUAL, drafts, human delay) | ✅ implemented |
+| Voice: audio bus, VAD, STT | ✅ implemented · wake word + streaming TTS 🚧 in progress |
+| LLM (Gemini via `GEMINI_MODEL`) | ✅ single-shot generation · tool-calling / planning 🚧 not yet |
+| Memory | 🚧 pgvector retrieval exists; auto-embedding & prompt injection incomplete |
+| Jobs API | 🧪 mock data only |
+| Desktop control, proactive engine | ❌ planned |
 
 ## Testing
 
 ```bash
-# Run all tests
-pytest tests/
-
-# Run with coverage
-pytest --cov=AI_REPLICA tests/
-
-# Run specific test
-pytest tests/test_core.py::test_ai_engine
+pip install -r requirements-dev.txt
+pytest tests/test_security_hardening.py tests/test_auth.py tests/test_websocket.py tests/test_tasks_and_orchestrator.py
 ```
 
-## Development Guide
+Some tests (`test_connection`, `test_memory`) need a running Postgres; `test_vad` / `test_voice_pipeline`
+need an audio device (PortAudio).
 
-### Adding a New Agent
+## Roadmap
 
-1. Create `agents/my_agent/` directory
-2. Implement agent class with required methods
-3. Register with orchestrator
+- [x] Agent abstraction, DB foundation, VAD engine
+- [ ] LLM tool-calling "brain" (replace placeholder planner)
+- [ ] Wake word wiring + streaming TTS + barge-in
+- [ ] Memory: embed every message, retrieve into prompts
+- [ ] Real Discord / Telegram / Gmail / LinkedIn integrations end-to-end
+- [ ] Proactive engine (briefings, reminders), desktop/browser skills
 
-### Adding an Integration
+## Author
 
-1. Create `integrations/my_service/` directory
-2. Implement integration class
-3. Configure credentials in `.env`
-
-### Adding Storage Backend
-
-1. Create `storage/my_backend/` directory
-2. Implement backend interface
-3. Register in system initialization
-
-## Performance Metrics
-
-- **Response Time**: <1s for typical queries (with caching)
-- **Throughput**: 100+ queries/minute with thread pool
-- **Memory**: ~150MB base + model size
-- **Storage**: Scales with database backend
-
-## Security Features
-
-- ✅ Environment variable-based secrets management
-- ✅ Input validation on all user inputs
-- ✅ Rate limiting on external APIs
-- ✅ Secure credential storage
-- ✅ Comprehensive audit logging
-
-## Roadmap & Phase Progression
-
-### Phase 3: Social Agents & Voice Upgrades (In Progress)
-
-- [x] **Social Agent Abstraction Framework**: Created `BaseAgent`, `AgentRegistry`, `AgentManager` and agent health check APIs.
-- [x] **Production Database Foundation**: Created base mixins (`UUIDMixin`, `TimestampMixin`, `SoftDeleteMixin`) and global schema enums.
-- [x] **Voice Activity Detection (VAD) Engine**: Integrated Silero VAD for real-time speech/silence probability detection.
-- [x] **Wake Word Engine Prep**: Added `openwakeword`, `onnxruntime`, and `librosa` dependencies and `AssistantState` enums.
-- [ ] **Database Models upgrade**: Platform, SocialAccount, Conversation, and Message schema enhancements (Module 2-4).
-- [ ] **Social Integrations**: Real connection bots for Discord, Telegram, Gmail, and LinkedIn.
-
-### Future Roadmap
-
-- [ ] Multi-user support with authentication
-- [ ] Advanced NLP with fine-tuned models
-- [ ] Mobile companion app
-- [ ] Real-time collaboration
-- [ ] Cloud deployment (AWS/GCP)
-- [ ] Advanced analytics dashboard
-
-## Project Structure
-
-See [AI_REPLICA/README.md](./AI_REPLICA/README.md) for detailed architecture documentation.
-
-## Support & Contact
-
-**Creator**: Krushna Kumbhar  
-**Email**: krushanakumbhar314@gmail.com  
-**GitHub**: @Krushna56
-
----
-
-**Version**: 3.0.0-dev  
-**Status**: Phase 3 Development (In Progress) ⚙️  
-**Last Updated**: July 26, 2026
+Krushna Kumbhar — [@Krushna56](https://github.com/Krushna56)

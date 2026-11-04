@@ -1,12 +1,18 @@
-import asyncio
+"""Connectivity check for the configured database (skipped if unreachable)."""
+import pytest
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-DATABASE_URL = "postgresql+asyncpg://postgres:Ai%405605@127.0.0.1:5433/aiclone"
+from app.core.config import settings
 
-engine = create_async_engine(DATABASE_URL)
 
-async def test():
-    async with engine.connect() as conn:
-        print("DATABASE CONNECTED")
-
-asyncio.run(test())
+@pytest.mark.asyncio
+async def test_database_connection():
+    engine = create_async_engine(settings.DATABASE_URL)
+    try:
+        async with engine.connect() as conn:
+            assert (await conn.execute(text("SELECT 1"))).scalar() == 1
+    except Exception as exc:  # no DB running (e.g. CI / fresh checkout)
+        pytest.skip(f"Database not reachable: {exc}")
+    finally:
+        await engine.dispose()

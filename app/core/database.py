@@ -1,7 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from app.core.config import DATABASE_URL
+from app.core.config import settings
+
+DATABASE_URL = settings.DATABASE_URL
 
 # Convert async connection string to sync protocol for the synchronous engine
 if not DATABASE_URL:
