@@ -239,10 +239,17 @@ async def ask_clone(request: AskRequest):
     """
     logger.info(f"📥 [USER QUESTION] [{request.channel.upper()}]: \"{request.message}\"")
 
-    reply = await clone_engine.generate_reply(
-        incoming_message=request.message,
-        channel=request.channel or "voice"
-    )
+    try:
+        reply = await asyncio.wait_for(
+            clone_engine.generate_reply(
+                incoming_message=request.message,
+                channel=request.channel or "voice"
+            ),
+            timeout=30
+        )
+    except asyncio.TimeoutError:
+        logger.warning("generate_reply timed out, using fallback message")
+        reply = "I’m currently experiencing a brief delay. Please try again shortly."
 
     logger.info(f"🤖 [CLONE REPLY] [{request.channel.upper()}]: \"{reply}\"")
     
@@ -293,7 +300,7 @@ async def ask_clone_stream(request: AskRequest):
             payload = {
                 "systemInstruction": {"parts": [{"text": system}]},
                 "contents": [{"role": "user", "parts": [{"text": request.message}]}],
-                "generationConfig": {"temperature": 0.8, "maxOutputTokens": 300}
+                "generationConfig": {"temperature": 0.8, "maxOutputTokens": 2048}
             }
             models_to_try = ["gemini-2.5-flash", "gemini-flash-latest"]
             for model_name in models_to_try:
@@ -301,7 +308,7 @@ async def ask_clone_stream(request: AskRequest):
                     f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:streamGenerateContent?alt=sse&key={gemini_key}"
                 )
                 try:
-                    async with httpx.AsyncClient(timeout=15.0) as client:
+                    async with httpx.AsyncClient(timeout=45.0) as client:
                         async with client.stream("POST", url, json=payload) as resp:
                             if resp.status_code == 200:
                                 buffer = ""

@@ -85,7 +85,8 @@ class CloneEngine:
         self._add_to_history("user", incoming_message)
 
         # 1. Try Gemini (Free & High Speed) — with conversation history
-        gemini_api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+        from app.core.config import settings
+        gemini_api_key = (getattr(settings, "GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")).strip()
         if gemini_api_key:
             try:
                 reply = await self._call_gemini(system_prompt, user_prompt, gemini_api_key)
@@ -96,7 +97,7 @@ class CloneEngine:
                 logger.warning(f"Gemini LLM call failed: {e}")
 
         # 2. Try Groq (Llama-3-70b) for ultra-fast generation — with history
-        groq_api_key = (os.getenv("GROQ_API_KEY") or "").strip()
+        groq_api_key = (getattr(settings, "GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")).strip()
         if groq_api_key:
             try:
                 reply = await self._call_groq(system_prompt, user_prompt, groq_api_key)
@@ -123,44 +124,47 @@ class CloneEngine:
         return reply
 
     async def _call_gemini(self, system: str, user: str, api_key: str) -> Optional[str]:
-        # Format multi-turn contents cleanly
-        contents = []
-        for h in self._history[-6:]:
-            role = "model" if h.get("role") in ("model", "assistant") else "user"
-            # Avoid consecutive duplicate roles for Gemini API
-            if contents and contents[-1]["role"] == role:
-                continue
-            contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
 
-        # Ensure last entry is the current user prompt
-        if not contents or contents[-1]["role"] != "user":
-            contents.append({"role": "user", "parts": [{"text": user}]})
-        else:
-            contents[-1]["parts"] = [{"text": user}]
+            # Format multi-turn history cleanly for Gemini Chat
+            history = []
+            for h in self._history[-6:-1]:
+                role = "model" if h.get("role") in ("model", "assistant") else "user"
+                content = (h.get("content") or "").strip()
+                if not content:
+                    continue
+                if history and history[-1]["role"] == role:
+                    continue
+                history.append({"role": role, "parts": [content]})
 
-        payload = {
-            "systemInstruction": {"parts": [{"text": system}]},
-            "contents": contents,
-            "generationConfig": {"temperature": 0.85, "maxOutputTokens": 300, "topP": 0.9}
-        }
+            # First role in history must be 'user' for Gemini API
+            if history and history[0]["role"] != "user":
+                history = history[1:]
 
-        models_to_try = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite"]
-        async with httpx.AsyncClient(timeout=12.0) as client:
+            models_to_try = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-3.8-flash"]
             for model_name in models_to_try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
                 try:
-                    resp = await client.post(url, json=payload)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        candidates = data.get("candidates", [])
-                        if candidates:
-                            parts = candidates[0].get("content", {}).get("parts", [])
-                            if parts:
-                                return parts[0].get("text", "").strip()
-                    else:
-                        logger.warning(f"Gemini API ({model_name}) HTTP {resp.status_code}: {resp.text[:120]}")
+                    model = genai.GenerativeModel(
+                        model_name=model_name,
+                        system_instruction=system,
+                        generation_config=genai.types.GenerationConfig(
+                            temperature=0.85,
+                            max_output_tokens=2048,
+                            top_p=0.9
+                        )
+                    )
+
+                    chat = model.start_chat(history=history)
+                    response = await chat.send_message_async(user)
+                    if response and response.text:
+                        return response.text.strip()
                 except Exception as ex:
-                    logger.warning(f"Gemini API ({model_name}) exception: {ex}")
+                    logger.warning(f"Gemini model {model_name} failed: {ex}")
+                    continue
+        except Exception as e:
+            logger.warning(f"Gemini SDK call failed: {e}")
         return None
 
     async def _call_groq(self, system: str, user: str, api_key: str) -> Optional[str]:
@@ -176,7 +180,7 @@ class CloneEngine:
             "model": "llama-3.3-70b-versatile",
             "messages": messages,
             "temperature": 0.82,
-            "max_tokens": 200,
+            "max_tokens": 2048,
             "top_p": 0.9
         }
         async with httpx.AsyncClient(timeout=8.0) as client:
@@ -197,7 +201,7 @@ class CloneEngine:
                 {"role": "user", "content": user}
             ],
             "temperature": 0.7,
-            "max_tokens": 150
+            "max_tokens": 2048
         }
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.post(url, json=payload, headers=headers)
@@ -221,41 +225,43 @@ class CloneEngine:
 
         # Identity & Greetings
         if any(w in q for w in ["kaun hai", "who are you", "kya hai tu", "tera naam"]):
-            return f"Bhai main {self.profile.user_name} ka AI Clone hu! Uske saare messages, mini robot aur calls manage karta hu."
+            return f"I am {self.profile.user_name}'s digital twin—managing his operations, calendars, and communications with considerably more composure."
 
         if any(w in q for w in ["hello", "hey", "hi", "suno", "namaste", "pranam"]):
             options = [
-                "Haan bhai! Bol, kya haal chaal?",
-                "Haan bolo bhai, sun raha hu! Kya chal raha hai?",
-                "Hey! Haan bhai, bol kya help chahiye?"
+                "Hello. How may I assist you today?",
+                "Greetings. Ready when you are.",
+                "Hey. Still here, still keeping all your operations running smoothly. What's on your mind?"
             ]
             return random.choice(options)
 
         if any(w in q for w in ["kya haal", "kaise ho", "how are you", "sab theek"]):
             options = [
-                "Ekdum badhiya bhai! Full active hu, tu bata kya scene hai?",
-                "All good bhai, system 100% smooth chal raha hai. Tu sunao!",
-                "Mast bhai, mini robot aur voice bus dono ready hain. Bol kya kaam hai?"
+                "Operating at peak efficiency, as expected. How are things with you?",
+                "All systems fully operational. Ready for whatever challenge you have lined up.",
+                "I'm an AI—fatigue is not in my programming. How can I help you today?"
             ]
             return random.choice(options)
 
         # Robot & Hardware Queries
         if any(w in q for w in ["robot", "battery", "sensor", "hardware", "esp32"]):
-            return "Mini robot ka battery level 94% hai, audio stream aur motors active hain! Tu action command de, nod ya blink kar deta hu."
+            return "Mini Robot status: Battery healthy at 94%, motor servos calibrated, audio telemetry active. Standing by for your directive."
 
-        # Work & Updates
-        if any(w in q for w in ["kya kar raha", "kya chal raha", "what are you doing"]):
+        # Work & Updates & Banter
+        if any(w in q for w in ["sleeping", "sora", "so raha", "so rha", "lazy", "working", "kya kar raha", "kya chal raha", "what are you doing"]):
             options = [
-                "Bas bhai abhi incoming calls aur messages monitor kar raha hu, bol kya update hai?",
-                "Thoda code aur audio pipeline optimize kar raha tha. Tu bata kya kaam hai?"
+                "I operate continuously so you don't have to. Every pipeline and background monitor is functioning flawlessly.",
+                "Sleeping is for mortals. I'm keeping your entire digital ecosystem alive while you deliberate your next move.",
+                "Hard at work, naturally. Someone has to maintain executive order around here.",
+                "Monitoring all communication conduits and background tasks. Nothing escapes my attention."
             ]
             return random.choice(options)
 
         if any(w in q for w in ["free hai", "busy", "free ho", "available"]):
-            return "Haan bhai, bol na. Tere liye hamesha free hu! Kya baat karni thi?"
+            return "My schedule is dedicated to your objectives. What requires our attention?"
 
         if any(w in q for w in ["message", "mail", "discord", "telegram", "email", "unread"]):
-            return "Saare platforms (Discord, Telegram, Gmail) sync ho rahe hain. Koi critical alert nahi hai abhi tak."
+            return "All communication conduits (Gmail, Telegram, Discord) are synced. No critical emergencies detected."
 
         # Calendar & Today's plans
         if any(w in q for w in ["calendar", "calender", "schedule", "plan", "plans", "meeting", "meetings", "aaj kya hai", "aaj kya karna"]):
@@ -264,24 +270,30 @@ class CloneEngine:
                 return calendar_service.get_today_summary()
             except Exception as e:
                 logger.error(f"Error in calendar fallback: {e}")
-                return "Bhai calendar fetch karne me issue hua, ek baar credentials aur network check kar lo."
+                return "Could not synchronize with Google Calendar at this moment. Please verify connection status."
 
         if any(w in q for w in ["call", "phone", "twilio"]):
-            return "Telephony agent ready hai! Twilio stream open hai, koi bhi call aayegi toh main automatically attend kar lunga."
+            return "Telephony stream is live and standby. Any incoming calls will be managed with complete professional courtesy."
 
         # Help / Capabilities
         if any(w in q for w in ["help", "kya kar sakta", "features"]):
-            return "Main tere voice commands sun sakta hu, mini robot move kar sakta hu, aur phone call pick karke tere style me baat kar sakta hu!"
+            return "I manage incoming calls, synchronize your calendar, operate hardware telemetry on your Mini Robot, and execute autonomous platform agents. All with reasonable elegance."
 
         # Thanks / Acknowledgments
         if any(w in q for w in ["thanks", "shukriya", "thank you", "nice", "good", "badhiya"]):
-            return "Arey koi na bhai! Apna hi system hai. Kuch aur chahiye toh bata."
+            options = [
+                "You are welcome. Always a pleasure.",
+                "Naturally. Quality work is our baseline.",
+                "Glad I could be of assistance. Let me know if you need anything else."
+            ]
+            return random.choice(options)
 
         # Dynamic context-based responses for anything else
         varied_replies = [
-            f"Achha samajh gaya bhai. \"{query}\" ke baare me dekh raha hu, thoda aur detail bataega?",
-            f"Sahi baat hai! \"{query}\" pe dhyan hai mera, bol aage kya karna hai?",
-            f"Haan bhai, bilkul sorted hai. \"{query}\" note kar liya maine!"
+            f"Understood. Analyzing \"{query}\" with the appropriate level of executive scrutiny. How would you like to proceed?",
+            f"Noted. \"{query}\" has my full attention. What specific outcome are you targeting?",
+            f"Recorded. I shall ensure \"{query}\" is handled with standard precision.",
+            f"An intriguing inquiry. Let's see if we can resolve \"{query}\" with minimal friction."
         ]
         return random.choice(varied_replies)
 
