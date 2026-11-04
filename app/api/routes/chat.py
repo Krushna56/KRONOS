@@ -275,7 +275,8 @@ async def ask_clone_stream(request: AskRequest):
     async def event_generator():
         import os, httpx
         streamed = False
-        gemini_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+        from app.core.config import settings
+        gemini_key = (getattr(settings, "GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")).strip()
 
         # Check calendar intent for stream as well
         calendar_keywords = [
@@ -303,7 +304,7 @@ async def ask_clone_stream(request: AskRequest):
                 "contents": [{"role": "user", "parts": [{"text": request.message}]}],
                 "generationConfig": {"temperature": 0.8, "maxOutputTokens": 2048}
             }
-            models_to_try = ["gemini-2.5-flash", "gemini-flash-latest"]
+            models_to_try = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"]
             for model_name in models_to_try:
                 url = (
                     f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:streamGenerateContent?alt=sse&key={gemini_key}"

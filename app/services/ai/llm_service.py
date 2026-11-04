@@ -30,7 +30,7 @@ class LLMService:
     Fallback: Returns a polite error string if the API is unavailable.
     """
 
-    MODEL_NAME = "gemini-2.5-flash"
+    MODEL_NAME = "gemini-3.8-flash"
 
     def __init__(self, api_key: Optional[str] = None):
         # Prefer explicit key → settings → env var

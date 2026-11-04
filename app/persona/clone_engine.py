@@ -143,7 +143,7 @@ class CloneEngine:
             if history and history[0]["role"] != "user":
                 history = history[1:]
 
-            models_to_try = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-3.8-flash"]
+            models_to_try = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash"]
             for model_name in models_to_try:
                 try:
                     model = genai.GenerativeModel(
@@ -156,8 +156,9 @@ class CloneEngine:
                         )
                     )
 
+                    import asyncio
                     chat = model.start_chat(history=history)
-                    response = await chat.send_message_async(user)
+                    response = await asyncio.wait_for(chat.send_message_async(user), timeout=25.0)
                     if response and response.text:
                         return response.text.strip()
                 except Exception as ex:
