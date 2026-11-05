@@ -1,53 +1,31 @@
-from app.core.security import pwd_context
-from jose.constants import ALGORITHMS
-from datetime import datetime, timedelta
-from jose import jwt, JWTError
-from passlib.context import CryptContext
+"""Compatibility wrappers for the canonical authentication helpers.
 
-SECRET_KEY = "supersecrete"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+New application code should import directly from app.core.security.
+"""
 
-pws_context = CryptContext(
-    schemes=['bcrypt'],
-    deprecated = "auto"
+from app.core.security import (
+    create_access_token as _create_access_token,
+    decode_access_token,
+    hash_password,
+    pwd_context,
+    verify_password,
 )
 
-def hash_password(password: str):
-    return pwd_context.hash(password)
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(
-        plain_password,
-        hashed_password
-    )
+# Preserve the old exported name for callers that still import it.
+pws_context = pwd_context
 
 
-def create_access_token(data: dict):
-    to_encode = data.copy()
-
-    expire = datetime.utcnow() + timedelta(
-        minutes = ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-
-    to_encode.update({"exp": expire})
-
-    return jwt.encode(
-        to_encode,
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
+def create_access_token(data: dict) -> str:
+    """Create a token from the legacy {sub: ...} payload shape."""
+    subject = data.get("sub")
+    if subject is None:
+        raise ValueError("JWT payload must include a subject ('sub').")
+    return _create_access_token(subject)
 
 
 def verify_token(token: str):
-    try:
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms = [ALGORITHM]
-        )
-        return payload
-
-    except JWTError:
+    """Return the decoded subject in the legacy payload shape, or None."""
+    subject = decode_access_token(token)
+    if subject is None:
         return None
-            
+    return {"sub": subject}
