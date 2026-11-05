@@ -37,7 +37,7 @@ from app.core.config import settings
 from app.core.logger import logger
 
 # Routers
-from app.api.routes import health, auth, chat, jobs
+from app.api.routes import health, auth, chat, jobs, memory
 from app.api.routes.message_routes import router as message_router
 from app.api.routes.social_routes import router as social_router
 from app.api.routes.draft_routes import router as draft_router
@@ -114,6 +114,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api/health", tags=["Health"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(chat.router, tags=["Chat"])
+app.include_router(memory.router)
 app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(ws_routes.router, tags=["WebSockets"])
 app.include_router(message_router)
