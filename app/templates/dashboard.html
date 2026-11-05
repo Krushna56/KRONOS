@@ -875,6 +875,71 @@
     </main>
 
     <script>
+        // KRONOS authentication: prompt once, then reuse the JWT across reloads and tabs.
+        const KRONOS_TOKEN_KEY = "kronos_token";
+        let kronosLoginPromise = null;
+
+        async function ensureToken() {
+            const savedToken = localStorage.getItem(KRONOS_TOKEN_KEY);
+            if (savedToken) return savedToken;
+
+            // Share an in-flight login request so concurrent chat actions do not open
+            // multiple username/password prompts.
+            if (!kronosLoginPromise) {
+                kronosLoginPromise = (async () => {
+                    const username = window.prompt("KRONOS login — username:");
+                    if (!username) throw new Error("Login cancelled.");
+
+                    const password = window.prompt("KRONOS login — password:");
+                    if (!password) throw new Error("Login cancelled.");
+
+                    const response = await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded"
+                        },
+                        body: new URLSearchParams({ username, password })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("KRONOS login failed. Check your username and password.");
+                    }
+
+                    const data = await response.json();
+                    if (!data.access_token) {
+                        throw new Error("KRONOS login response did not include an access token.");
+                    }
+
+                    localStorage.setItem(KRONOS_TOKEN_KEY, data.access_token);
+                    return data.access_token;
+                })().finally(() => {
+                    kronosLoginPromise = null;
+                });
+            }
+
+            return kronosLoginPromise;
+        }
+
+        async function authFetch(url, options = {}) {
+            const token = await ensureToken();
+            const headers = new Headers(options.headers || {});
+            headers.set("Authorization", `Bearer ${token}`);
+
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+
+            if (response.status === 401) {
+                // Do not trigger another prompt inside the same request. The next
+                // user action can authenticate again with fresh credentials.
+                localStorage.removeItem(KRONOS_TOKEN_KEY);
+                throw new Error("KRONOS session expired or unauthorized. Send your message again to log in.");
+            }
+
+            return response;
+        }
+
         // Canvas Audio Visualizer
         const canvas = document.getElementById("visualizer-canvas");
         const ctx = canvas.getContext("2d");
@@ -1011,7 +1076,7 @@
             let fullReply = '';
 
             try {
-                const resp = await fetch('/api/chat/ask-stream', {
+                const resp = await authFetch('/api/chat/ask-stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: query, channel: 'voice' })
@@ -1057,7 +1122,9 @@
                     speakAloud(fullReply);
                 }
             } catch (err) {
-                fullReply = `Haan bhai: "${query}". Sab sorted hai!`;
+                fullReply = err && err.message
+                    ? err.message
+                    : `Unable to reach KRONOS. Please try again.`;
                 bubble.textContent = fullReply;
                 bubble.classList.remove('streaming');
             } finally {
