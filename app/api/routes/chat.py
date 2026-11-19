@@ -1,4 +1,4 @@
-from typing import List
+﻿from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -237,7 +237,7 @@ async def ask_clone(request: AskRequest):
     Direct endpoint for Voice UI, Mini Robot, or Telephony to get a response
     in Krushna's exact authentic tone.
     """
-    logger.info(f"📥 [USER QUESTION] [{request.channel.upper()}]: \"{request.message}\"")
+    logger.info(f"ðŸ“¥ [USER QUESTION] [{request.channel.upper()}]: \"{request.message}\"")
 
     try:
         reply = await asyncio.wait_for(
@@ -249,16 +249,16 @@ async def ask_clone(request: AskRequest):
         )
     except asyncio.TimeoutError:
         logger.warning("generate_reply timed out, using fallback message")
-        reply = "I’m currently experiencing a brief delay. Please try again shortly."
+        reply = "Iâ€™m currently experiencing a brief delay. Please try again shortly."
 
 
-    logger.info(f"🤖 [CLONE REPLY] [{request.channel.upper()}]: \"{reply}\"")
+    logger.info(f"ðŸ¤– [CLONE REPLY] [{request.channel.upper()}]: \"{reply}\"")
     
     return {"reply": reply, "channel": request.channel}
 
 
 # =========================================================
-# REAL-TIME STREAMING ENDPOINT (SSE) — token by token
+# REAL-TIME STREAMING ENDPOINT (SSE) â€” token by token
 # =========================================================
 
 from fastapi.responses import StreamingResponse
@@ -270,7 +270,7 @@ async def ask_clone_stream(request: AskRequest):
     """
     Real-time SSE streaming endpoint. Streams reply word-by-word for instant UI updates.
     """
-    logger.info(f"📥 [STREAM QUESTION] [{request.channel.upper()}]: \"{request.message}\"")
+    logger.info(f"ðŸ“¥ [STREAM QUESTION] [{request.channel.upper()}]: \"{request.message}\"")
 
     async def event_generator():
         import os, httpx
@@ -332,7 +332,7 @@ async def ask_clone_stream(request: AskRequest):
                                                 yield f"data: {json.dumps({'token': token, 'done': False})}\n\n"
                                         except Exception:
                                             pass
-                                logger.info(f"🤖 [STREAM COMPLETED] [{model_name}]: \"{buffer.strip()}\"")
+                                logger.info(f"ðŸ¤– [STREAM COMPLETED] [{model_name}]: \"{buffer.strip()}\"")
                                 yield f"data: {json.dumps({'token': '', 'done': True})}\n\n"
                                 streamed = True
                                 break
@@ -346,7 +346,7 @@ async def ask_clone_stream(request: AskRequest):
                 incoming_message=request.message,
                 channel=request.channel or "voice"
             )
-            logger.info(f"🤖 [FALLBACK STREAM]: \"{full_reply}\"")
+            logger.info(f"ðŸ¤– [FALLBACK STREAM]: \"{full_reply}\"")
             words = full_reply.split(" ")
             for i, word in enumerate(words):
                 token = word + (" " if i < len(words) - 1 else "")
@@ -359,6 +359,7 @@ async def ask_clone_stream(request: AskRequest):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     )
+
 
 
 
