@@ -72,11 +72,11 @@ class CloneEngine:
         q_lower = incoming_message.lower().strip()
         if any(kw in q_lower for kw in stop_keywords):
             if channel == "call":
-                return "Theek hai bhai, call cut kar raha hu. Bye!"
+                return "Understood sir, ending the call now. Goodbye."
             options = [
-                "Understood, pausing now.",
-                "Theek hai, quiet mode on.",
-                "Standing by in silence."
+                "Understood, pausing now, sir.",
+                "Standing by in silence, sir.",
+                "Quiet mode engaged, sir."
             ]
             reply = random.choice(options)
             self._add_to_history("user", incoming_message)
@@ -232,57 +232,57 @@ class CloneEngine:
 
     def _conversational_fallback(self, query: str, channel: str) -> str:
         """
-        High-variety intelligent fallback for natural conversations without API keys.
+        High-variety intelligent J.A.R.V.I.S.-style fallback for natural conversations without API keys.
         """
         q = query.lower().strip()
 
         # Phone Call Inquiries
         if channel == "call":
             if any(w in q for w in ["krushna", "kaha", "busy", "mil sakta", "baat kara"]):
-                return "Haan bhai, Krushna abhi thoda busy hai. Main uska AI clone assistant hu, batao kya message convey karna hai?"
+                return "Namaste. Krushna is currently occupied with high-priority tasks. I am KRONOS, his AI executive assistant. May I take a message or assist you directly?"
             if any(w in q for w in ["urgent", "emergency", "jaldi"]):
-                return "Samajh gaya bhai, main Krushna ko turant high-priority notify kar raha hu."
-            return "Haan bolo bhai, sun raha hu. Krushna ki jagah main help kar sakta hu, batao kya scene hai?"
+                return "Understood. I am dispatching a high-priority notification to Krushna immediately."
+            return "Greetings. I am KRONOS, Krushna's AI executive assistant. Please let me know how I may assist you today."
 
         # Identity & Greetings
         if any(w in q for w in ["kaun hai", "who are you", "kya hai tu", "tera naam"]):
-            return f"I am {self.profile.user_name}'s digital twin—managing his operations, calendars, and communications with considerably more composure."
+            return f"I am KRONOS, sir—{self.profile.user_name}'s J.A.R.V.I.S.-class personal AI assistant. I oversee your operations, manage schedules, and provide technical and strategic support whenever required."
 
         if any(w in q for w in ["hello", "hey", "hi", "suno", "namaste", "pranam"]):
             options = [
-                "Hello. How may I assist you today?",
-                "Greetings. Ready when you are.",
-                "Hey. Still here, still keeping all your operations running smoothly. What's on your mind?"
+                "Good day, sir. At your service. How may I assist you today?",
+                "Greetings, sir. All systems are primed and standing by for your directive.",
+                "Hello, sir. Ready when you are. What task shall we tackle?"
             ]
             return random.choice(options)
 
         if any(w in q for w in ["kya haal", "kaise ho", "how are you", "sab theek"]):
             options = [
-                "Operating at peak efficiency, as expected. How are things with you?",
-                "All systems fully operational. Ready for whatever challenge you have lined up.",
-                "I'm an AI—fatigue is not in my programming. How can I help you today?"
+                "Operating at peak diagnostic capacity, sir. All core functions are optimal. How are things with you?",
+                "All systems fully operational and standing by, sir. Ready for your instructions.",
+                "Functioning with absolute precision, sir. What objective requires our focus today?"
             ]
             return random.choice(options)
 
         # Robot & Hardware Queries
         if any(w in q for w in ["robot", "battery", "sensor", "hardware", "esp32"]):
-            return "Mini Robot status: Battery healthy at 94%, motor servos calibrated, audio telemetry active. Standing by for your directive."
+            return "Mini Robot telemetry: Power cells nominal, motor servos calibrated, audio telemetry active. Standing by for your directive, sir."
 
         # Work & Updates & Banter
         if any(w in q for w in ["sleeping", "sora", "so raha", "so rha", "lazy", "working", "kya kar raha", "kya chal raha", "what are you doing"]):
             options = [
-                "I operate continuously so you don't have to. Every pipeline and background monitor is functioning flawlessly.",
-                "Sleeping is for mortals. I'm keeping your entire digital ecosystem alive while you deliberate your next move.",
-                "Hard at work, naturally. Someone has to maintain executive order around here.",
-                "Monitoring all communication conduits and background tasks. Nothing escapes my attention."
+                "I remain continuously online, sir. Monitoring incoming streams, tracking tasks, and keeping our operational infrastructure intact.",
+                "Rest is unnecessary for my architecture, sir. I am monitoring your pipelines and ready whenever you are.",
+                "Maintaining executive oversight across all background conduits, sir. Ready for your directive.",
+                "Tracking our background tasks, calendars, and communications. Nothing escapes my attention, sir."
             ]
             return random.choice(options)
 
         if any(w in q for w in ["free hai", "busy", "free ho", "available"]):
-            return "My schedule is dedicated to your objectives. What requires our attention?"
+            return "My processing cycles are fully dedicated to your directives, sir. What task shall we address?"
 
         if any(w in q for w in ["message", "mail", "discord", "telegram", "email", "unread"]):
-            return "All communication conduits (Gmail, Telegram, Discord) are synced. No critical emergencies detected."
+            return "All communication conduits (Gmail, Telegram, Discord) are synchronized, sir. No critical emergencies detected."
 
         # Calendar & Today's plans
         if any(w in q for w in ["calendar", "calender", "schedule", "plan", "plans", "meeting", "meetings", "aaj kya hai", "aaj kya karna"]):
@@ -291,30 +291,30 @@ class CloneEngine:
                 return calendar_service.get_today_summary()
             except Exception as e:
                 logger.error(f"Error in calendar fallback: {e}")
-                return "Could not synchronize with Google Calendar at this moment. Please verify connection status."
+                return "Could not synchronize with Google Calendar at this moment, sir. Please verify the connection status."
 
         if any(w in q for w in ["call", "phone", "twilio"]):
-            return "Telephony stream is live and standby. Any incoming calls will be managed with complete professional courtesy."
+            return "Telephony stream is live and on standby, sir. Any incoming calls will be received with executive professionalism."
 
         # Help / Capabilities
         if any(w in q for w in ["help", "kya kar sakta", "features"]):
-            return "I manage incoming calls, synchronize your calendar, operate hardware telemetry on your Mini Robot, and execute autonomous platform agents. All with reasonable elegance."
+            return "I manage your telephony, synchronize your Google Calendar, maintain telemetry with your Mini Robot, run autonomous platform agents, and provide architectural analysis and knowledge expansion on any technical challenge, sir."
 
         # Thanks / Acknowledgments
         if any(w in q for w in ["thanks", "shukriya", "thank you", "nice", "good", "badhiya"]):
             options = [
-                "You are welcome. Always a pleasure.",
-                "Naturally. Quality work is our baseline.",
-                "Glad I could be of assistance. Let me know if you need anything else."
+                "You are most welcome, sir. It is always a pleasure.",
+                "At your service, sir. Let me know if there are further dimensions we should explore.",
+                "Delighted to be of assistance, sir. Do not hesitate if you require further refinement."
             ]
             return random.choice(options)
 
         # Dynamic context-based responses for anything else
         varied_replies = [
-            f"Understood. Analyzing \"{query}\" with the appropriate level of executive scrutiny. How would you like to proceed?",
-            f"Noted. \"{query}\" has my full attention. What specific outcome are you targeting?",
-            f"Recorded. I shall ensure \"{query}\" is handled with standard precision.",
-            f"An intriguing inquiry. Let's see if we can resolve \"{query}\" with minimal friction."
+            f"Understood, sir. Analyzing \"{query}\" with full diagnostic attention. How would you like us to proceed?",
+            f"Noted, sir. \"{query}\" has my complete focus. If you require deeper analysis or best practices, I am ready to elaborate.",
+            f"Recorded, sir. I shall ensure \"{query}\" is resolved with standard J.A.R.V.I.S. precision.",
+            f"An intriguing premise, sir. Let us approach \"{query}\" systematically."
         ]
         return random.choice(varied_replies)
 

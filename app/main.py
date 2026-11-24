@@ -5,6 +5,14 @@ Phase 3: Social Agents
 
 import sys
 import io
+import os
+
+# ── Fix: allow running this file directly (e.g. VS Code play button) ──
+# Adds the project root (parent of the 'app' folder) to sys.path so that
+# `from app.xxx import ...` works whether launched via uvicorn OR directly.
+_project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
 
 # Force UTF-8 stdout and stderr on Windows.
 if hasattr(sys.stdout, "reconfigure"):
