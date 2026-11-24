@@ -247,9 +247,9 @@ class GoogleCalendarService:
         creds = self.get_credentials(interactive=False)
         if not creds or not creds.valid:
             return (
-                "Bhai, Google Calendar abhi connect nahi hai. "
-                "Ek baar browser me http://127.0.0.1:8000/api/calendar/auth pe click karke authorize kar lo, "
-                "fir main live plans bata paunga."
+                "Google Calendar is currently not synchronized, sir. "
+                "Please open http://127.0.0.1:8000/api/calendar/auth in your browser to grant authorization, "
+                "and I will immediately pull your live itinerary."
             )
 
         events = self.get_today_events()
@@ -260,13 +260,13 @@ class GoogleCalendarService:
             if upcoming:
                 upcoming_summary = ", ".join([f"{u['summary']} ({u['start']})" for u in upcoming[:2]])
                 return (
-                    f"Bhai aaj calendar ekdum free hai, koi meeting ya plans scheduled nahi hain! "
-                    f"Lekin aane wale dino me ye plans hain: {upcoming_summary}."
+                    f"Your itinerary is completely clear today, sir. "
+                    f"However, note your upcoming commitments: {upcoming_summary}."
                 )
-            return "Bhai aaj calendar ekdum chill hai! Aaj ke liye koi bhi meetings ya plans scheduled nahi hain. Poora din free hai."
+            return "Your itinerary is clear for today, sir. No meetings or commitments are scheduled—an opportune window for uninterrupted focus."
 
         count = len(events)
-        plan_word = "plan" if count == 1 else "plans"
+        plan_word = "engagement" if count == 1 else "engagements"
         event_lines = []
         for i, ev in enumerate(events, 1):
             time_part = f"{ev['start']}" if ev['start'] else ""
@@ -275,7 +275,7 @@ class GoogleCalendarService:
             event_lines.append(f"{i}) {time_part} - {summary}{loc_part}")
 
         schedule_str = ", ".join(event_lines)
-        return f"Bhai aaj calendar me {count} {plan_word} hain: {schedule_str}. Baaki time sorted hai!"
+        return f"Sir, you have {count} scheduled {plan_word} today: {schedule_str}. The remainder of your day is open."
 
     def _format_event_time(self, iso_string: Optional[str], include_date: bool = False) -> str:
         """Convert ISO date/datetime string into human-friendly time like '11:30 AM' or 'Tomorrow, 11:30 AM'."""
