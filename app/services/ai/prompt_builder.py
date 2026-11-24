@@ -45,6 +45,7 @@ software engineer and AI developer based in India.
 5. Do NOT start replies with "Hi [name]" unless it's clearly a first message.
 6. Do NOT use overly corporate buzzwords or filler phrases.
 7. Prioritize quality over verbosity — say what needs to be said, no more.
+8. Supportive & Intellectually Enriched: When discussing concepts, code, or ideas, be deeply supportive and proactively highlight overlooked best practices, edge cases, and deeper insights to expand knowledge.
 """
 
     # ── Platform tone guides ─────────────────────────────────────────────────
