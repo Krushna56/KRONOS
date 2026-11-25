@@ -86,7 +86,7 @@
             font-weight: 700;
             letter-spacing: 1.5px;
             background: linear-gradient(90deg, #fff, var(--cyan-neon));
-            -webkit-background-clip: text;
+            /* -webkit-background-clip: text; */
             -webkit-text-fill-color: transparent;
         }
 
@@ -555,7 +555,7 @@
         }
 
         input[type="range"] {
-            -webkit-appearance: none;
+            /* -webkit-appearance: none; */
             width: 100%;
             height: 5px;
             border-radius: 5px;
@@ -831,18 +831,14 @@
                         <span class="call-status-badge" id="call-status">STANDBY</span>
                     </div>
                     <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 8px;" id="call-preview-text">
-                        "Krushna free hai kya? Important kaam tha..."
+                        "Hello, is Krushna available? There's something urgent to discuss."
                     </div>
                     <div style="font-size: 0.78rem; color: #ff77ee; margin-top: 6px; font-weight: 500;" id="call-clone-reply">
-                        Clone: "Haan bhai bol, Krushna thoda busy hai. Main uska AI clone hu, kya urgent hai?"
+                        KRONOS: "Good day. Krushna is presently occupied, sir. I am KRONOS, his AI executive assistant. How may I be of service?"
                     </div>
                 </div>
 
-                <div class="btn-row" style="margin-top: 14px;">
-                    <button class="btn btn-secondary" onclick="simulateIncomingCall()">
-                        📞 Simulate Test Call
-                    </button>
-                </div>
+                <!-- Simulate Test Call button removed for clean production UI -->
             </div>
 
             <!-- Omnichannel Messages -->
@@ -994,7 +990,7 @@
         // Solves unwanted auto-detection: KRONOS only listens when explicitly permitted.
         let currentVoiceMode = 'push_to_talk'; // 'push_to_talk' (default safe) or 'wake_word'
         let recognition = null;
-        let isManuallyMuted = false;
+        // isManuallyMuted removed — unified into 'isMuted' (declared in toggleMute section)
 
         const WAKE_WORDS = [
             'jarvis', 'kronos', 'hey jarvis', 'hey kronos', 'ok jarvis', 'ok kronos', 
@@ -1116,9 +1112,9 @@
                 if (orb) orb.classList.remove('listening');
 
                 // If in wake_word mode and not currently speaking or muted, safely restart listening
-                if (currentVoiceMode === 'wake_word' && !isSpeaking && !isManuallyMuted) {
+                if (currentVoiceMode === 'wake_word' && !isSpeaking && !isMuted) {
                     setTimeout(() => {
-                        if (currentVoiceMode === 'wake_word' && !isSpeaking && !isManuallyMuted) {
+                        if (currentVoiceMode === 'wake_word' && !isSpeaking && !isMuted) {
                             try { recognition.start(); } catch(e){}
                         }
                     }, 400);
@@ -1477,9 +1473,9 @@
                 if (orb) orb.classList.remove('speaking');
                 
                 // Only resume listening if in wake-word mode and not manually muted
-                if (currentVoiceMode === 'wake_word' && !isManuallyMuted) {
+                if (currentVoiceMode === 'wake_word' && !isMuted) {
                     setTimeout(() => {
-                        if (currentVoiceMode === 'wake_word' && !isSpeaking && !isManuallyMuted) {
+                        if (currentVoiceMode === 'wake_word' && !isSpeaking && !isMuted) {
                             startListeningSafely();
                         }
                     }, 500);
@@ -1500,18 +1496,6 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        function simulateTestSpeech() {
-            const queries = [
-                "Jarvis, give me an update on our systems and schedule today.",
-                "Jarvis, are all background platform agents connected?",
-                "Jarvis, I am planning to store plaintext API keys in frontend code.",
-                "Robot battery and telemetry status check, please."
-            ];
-            const q = queries[Math.floor(Math.random() * queries.length)];
-            appendMessage('user', q);
-            sendToClone(q);
-        }
-
         function triggerAction(action) {
             const orb = document.getElementById('orb-core');
             orb.style.transform = 'scale(1.2)';
@@ -1527,23 +1511,7 @@
             appendMessage('clone', `Executed Robot action: [${action.toUpperCase()}]`);
         }
 
-        function simulateIncomingCall() {
-            const statusBadge = document.getElementById('call-status');
-            statusBadge.innerText = 'CALL CONNECTED';
-            statusBadge.style.background = '#00ff88';
-
-            document.getElementById('call-preview-text').innerHTML = '<em>Caller: "Bhai Krushna free hai kya? Kuch urgent discuss karna tha."</em>';
-            
-            setTimeout(() => {
-                document.getElementById('call-clone-reply').innerHTML = '<strong>Clone (Live Phone):</strong> "Greetings. Krushna is occupied at the moment. I am KRONOS, his AI executive assistant. May I take a message or assist you directly?"';
-                speakAloud("Greetings. Krushna is occupied at the moment. I am KRONOS, his AI executive assistant. May I take a message or assist you directly?");
-            }, 1200);
-
-            setTimeout(() => {
-                statusBadge.innerText = 'CALL LOGGED';
-                statusBadge.style.background = '#8a2be2';
-            }, 6000);
-        }
+        // simulateIncomingCall removed — real telephony agent handles live calls
     </script>
 </body>
 </html>
