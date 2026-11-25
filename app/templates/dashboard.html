@@ -1044,15 +1044,18 @@
                 const orb = document.getElementById('orb-core');
                 if (orb) orb.classList.add('listening');
                 const badge = document.getElementById('voice-state-badge');
+                const btnText = document.getElementById('btn-mic-text');
                 if (badge) {
                     if (currentVoiceMode === 'push_to_talk') {
                         badge.innerText = '🔴 LISTENING (SPEAK NOW)...';
                         badge.style.background = 'rgba(0, 255, 136, 0.2)';
                         badge.style.color = '#00ff88';
+                        if (btnText) btnText.innerText = '🔴 Listening... (Click to Stop)';
                     } else {
                         badge.innerText = 'AWAITING WAKE WORD';
                         badge.style.background = 'rgba(255, 170, 0, 0.15)';
                         badge.style.color = '#ffaa00';
+                        if (btnText) btnText.innerText = 'Wake Word Active ("Jarvis" / "Kronos")';
                     }
                 }
             };
@@ -1116,6 +1119,8 @@
                     }, 400);
                 } else if (currentVoiceMode === 'push_to_talk') {
                     const badge = document.getElementById('voice-state-badge');
+                    const btnText = document.getElementById('btn-mic-text');
+                    if (btnText) btnText.innerText = 'Click to Speak (Push-to-Talk)';
                     if (badge && !isSpeaking) {
                         badge.innerText = 'MIC STANDBY';
                         badge.style.background = 'rgba(0, 240, 255, 0.12)';
@@ -1128,7 +1133,33 @@
                 isListening = false;
                 const orb = document.getElementById('orb-core');
                 if (orb) orb.classList.remove('listening');
-                console.warn('Speech recognition status:', e.error);
+                console.warn('Speech recognition error:', e.error);
+
+                const badge = document.getElementById('voice-state-badge');
+                const btnText = document.getElementById('btn-mic-text');
+                if (btnText && currentVoiceMode === 'push_to_talk') {
+                    btnText.innerText = 'Click to Speak (Push-to-Talk)';
+                }
+
+                if (badge) {
+                    if (e.error === 'not-allowed') {
+                        badge.innerText = 'MIC BLOCKED (ALLOW IN BROWSER)';
+                        badge.style.background = 'rgba(255, 60, 60, 0.2)';
+                        badge.style.color = '#ff6060';
+                        alert('Microphone permission was blocked. Please click the lock or camera/mic icon in your browser address bar to allow microphone access.');
+                    } else if (e.error === 'no-speech') {
+                        if (currentVoiceMode === 'push_to_talk') {
+                            badge.innerText = 'NO SPEECH DETECTED';
+                            setTimeout(() => {
+                                if (badge && !isListening && !isSpeaking) {
+                                    badge.innerText = 'MIC STANDBY';
+                                    badge.style.background = 'rgba(0, 240, 255, 0.12)';
+                                    badge.style.color = 'var(--cyan-neon)';
+                                }
+                            }, 1500);
+                        }
+                    }
+                }
             };
         }
 
@@ -1141,13 +1172,13 @@
             try {
                 recognition.start();
             } catch (e) {
-                // Already started or restarting
+                // Already active
             }
         }
 
         function toggleMicrophone() {
             if (!recognition) {
-                simulateTestSpeech();
+                alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
                 return;
             }
 
@@ -1181,16 +1212,19 @@
                 badge.style.background = 'rgba(255, 80, 80, 0.15)';
                 badge.style.color = '#ff6b6b';
             }
+
+            const btnText = document.getElementById('btn-mic-text');
+            if (btnText && currentVoiceMode === 'push_to_talk') {
+                btnText.innerText = 'Click to Speak (Push-to-Talk)';
+            }
         }
 
         function sendTypedMessage() {
             const input = document.getElementById('user-text-input');
+            if (!input) return;
             const text = input.value.trim();
             if (!text) return;
             input.value = '';
-            appendMessage('user', text);
-            sendToClone(text);
-        }
             appendMessage('user', text);
             sendToClone(text);
         }
