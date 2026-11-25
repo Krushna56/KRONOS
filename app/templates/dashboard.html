@@ -793,13 +793,21 @@
                     <button class="btn btn-primary" style="flex: 0 0 90px;" onclick="sendTypedMessage()">Send ➔</button>
                 </div>
 
-                <div class="btn-row" style="display: flex; gap: 8px; margin-top: 10px;">
-                    <button class="btn btn-primary" id="btn-mic" onclick="toggleMicrophone()" style="flex: 1;">
+                <div class="btn-row" style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" id="btn-mic" onclick="toggleMicrophone()" style="flex: 1; min-width: 170px;">
                         <span id="btn-mic-icon">🎙️</span> <span id="btn-mic-text">Click to Speak (Push-to-Talk)</span>
                     </button>
-                    <button class="btn btn-secondary" id="btn-stop-speech" onclick="stopAllSpeechAndMic()" 
-                            style="background: rgba(255, 70, 70, 0.15); border-color: rgba(255, 70, 70, 0.4); color: #ff6b6b;" title="Instantly silence speech and mic">
-                        🛑 Stop / Mute
+                    <!-- Separate MUTE / UNMUTE Toggle Button -->
+                    <button class="btn btn-secondary" id="btn-mute" onclick="toggleMute()" 
+                            style="background: rgba(255, 170, 0, 0.15); border-color: rgba(255, 170, 0, 0.4); color: #ffaa00; min-width: 95px;" 
+                            title="Toggle microphone mute">
+                        <span id="btn-mute-icon">🔇</span> <span id="btn-mute-text">Mute</span>
+                    </button>
+                    <!-- Separate STOP Button (Stops AI response) -->
+                    <button class="btn btn-secondary" id="btn-stop-speech" onclick="stopSpeakingNow()" 
+                            style="background: rgba(255, 70, 70, 0.15); border-color: rgba(255, 70, 70, 0.4); color: #ff6b6b; min-width: 85px;" 
+                            title="Stop KRONOS speech immediately">
+                        🛑 Stop
                     </button>
                     <button class="btn btn-secondary" onclick="simulateTestSpeech()" style="padding: 10px 14px;">
                         ⚡ Test
@@ -1163,9 +1171,128 @@
             };
         }
 
+        let isMuted = false;
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const muteBtn = document.getElementById('btn-mute');
+            const muteIcon = document.getElementById('btn-mute-icon');
+            const muteText = document.getElementById('btn-mute-text');
+            const badge = document.getElementById('voice-state-badge');
+
+            if (isMuted) {
+                // ── Muted State ──
+                if (recognition) {
+                    try { recognition.abort(); } catch(e){}
+                }
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                }
+                isListening = false;
+                isSpeaking = false;
+
+                const orb = document.getElementById('orb-core');
+                if (orb) {
+                    orb.classList.remove('listening');
+                    orb.classList.remove('speaking');
+                }
+
+                if (muteIcon) muteIcon.innerText = '🔊';
+                if (muteText) muteText.innerText = 'Unmute';
+                if (muteBtn) {
+                    muteBtn.style.background = 'rgba(0, 255, 136, 0.15)';
+                    muteBtn.style.borderColor = 'rgba(0, 255, 136, 0.4)';
+                    muteBtn.style.color = '#00ff88';
+                }
+                if (badge) {
+                    badge.innerText = 'MUTED';
+                    badge.style.background = 'rgba(255, 60, 60, 0.2)';
+                    badge.style.color = '#ff6060';
+                }
+            } else {
+                // ── Unmuted State ──
+                if (muteIcon) muteIcon.innerText = '🔇';
+                if (muteText) muteText.innerText = 'Mute';
+                if (muteBtn) {
+                    muteBtn.style.background = 'rgba(255, 170, 0, 0.15)';
+                    muteBtn.style.borderColor = 'rgba(255, 170, 0, 0.4)';
+                    muteBtn.style.color = '#ffaa00';
+                }
+
+                if (currentVoiceMode === 'wake_word') {
+                    if (badge) {
+                        badge.innerText = 'AWAITING WAKE WORD';
+                        badge.style.background = 'rgba(255, 170, 0, 0.15)';
+                        badge.style.color = '#ffaa00';
+                    }
+                    startListeningSafely();
+                } else {
+                    if (badge) {
+                        badge.innerText = 'MIC STANDBY';
+                        badge.style.background = 'rgba(0, 240, 255, 0.12)';
+                        badge.style.color = 'var(--cyan-neon)';
+                    }
+                }
+            }
+        }
+
+        function stopSpeakingNow() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            isSpeaking = false;
+            const orb = document.getElementById('orb-core');
+            if (orb) orb.classList.remove('speaking');
+
+            const badge = document.getElementById('voice-state-badge');
+            if (badge) {
+                badge.innerText = 'SPEECH STOPPED';
+                badge.style.background = 'rgba(255, 60, 60, 0.2)';
+                badge.style.color = '#ff6060';
+                setTimeout(() => {
+                    if (badge && !isSpeaking) {
+                        if (isMuted) {
+                            badge.innerText = 'MUTED';
+                            badge.style.background = 'rgba(255, 60, 60, 0.2)';
+                            badge.style.color = '#ff6060';
+                        } else if (currentVoiceMode === 'wake_word') {
+                            badge.innerText = 'AWAITING WAKE WORD';
+                            badge.style.background = 'rgba(255, 170, 0, 0.15)';
+                            badge.style.color = '#ffaa00';
+                        } else {
+                            badge.innerText = 'MIC STANDBY';
+                            badge.style.background = 'rgba(0, 240, 255, 0.12)';
+                            badge.style.color = 'var(--cyan-neon)';
+                        }
+                    }
+                }, 1200);
+            }
+        }
+
+        function stopListening() {
+            if (recognition) {
+                try { recognition.stop(); } catch(e){}
+            }
+            isListening = false;
+            const orb = document.getElementById('orb-core');
+            if (orb) orb.classList.remove('listening');
+
+            const badge = document.getElementById('voice-state-badge');
+            if (badge && !isSpeaking && !isMuted) {
+                badge.innerText = 'MIC STANDBY';
+                badge.style.background = 'rgba(0, 240, 255, 0.12)';
+                badge.style.color = 'var(--cyan-neon)';
+            }
+
+            const btnText = document.getElementById('btn-mic-text');
+            if (btnText && currentVoiceMode === 'push_to_talk') {
+                btnText.innerText = 'Click to Speak (Push-to-Talk)';
+            }
+        }
+
         function startListeningSafely() {
             if (!recognition) return;
-            isManuallyMuted = false;
+            if (isMuted) return; // Do not start if muted
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
             }
@@ -1182,41 +1309,21 @@
                 return;
             }
 
+            // If muted, clicking the microphone automatically unmutes
+            if (isMuted) {
+                toggleMute();
+            }
+
             if (isListening) {
-                stopAllSpeechAndMic();
+                stopListening();
             } else {
                 startListeningSafely();
             }
         }
 
         function stopAllSpeechAndMic() {
-            isManuallyMuted = true;
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
-            if (recognition) {
-                try { recognition.abort(); } catch(e){}
-            }
-            isListening = false;
-            isSpeaking = false;
-
-            const orb = document.getElementById('orb-core');
-            if (orb) {
-                orb.classList.remove('listening');
-                orb.classList.remove('speaking');
-            }
-
-            const badge = document.getElementById('voice-state-badge');
-            if (badge) {
-                badge.innerText = 'MUTED / STANDBY';
-                badge.style.background = 'rgba(255, 80, 80, 0.15)';
-                badge.style.color = '#ff6b6b';
-            }
-
-            const btnText = document.getElementById('btn-mic-text');
-            if (btnText && currentVoiceMode === 'push_to_talk') {
-                btnText.innerText = 'Click to Speak (Push-to-Talk)';
-            }
+            stopSpeakingNow();
+            stopListening();
         }
 
         function sendTypedMessage() {
