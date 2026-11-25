@@ -304,13 +304,18 @@ async def ask_clone_stream(request: AskRequest):
                 "contents": [{"role": "user", "parts": [{"text": request.message}]}],
                 "generationConfig": {"temperature": 0.8, "maxOutputTokens": 2048}
             }
-            models_to_try = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"]
+            models_to_try = [
+                "gemini-flash-lite-latest",
+                "gemini-3.1-flash-lite",
+                "gemini-3.5-flash-lite",
+                "gemini-3.6-flash"
+            ]
             for model_name in models_to_try:
                 url = (
                     f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:streamGenerateContent?alt=sse&key={gemini_key}"
                 )
                 try:
-                    async with httpx.AsyncClient(timeout=45.0) as client:
+                    async with httpx.AsyncClient(timeout=6.0) as client:
                         async with client.stream("POST", url, json=payload) as resp:
                             if resp.status_code == 200:
                                 buffer = ""
