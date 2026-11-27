@@ -141,6 +141,13 @@ async def dashboard_view():
     return FileResponse(dashboard_path)
 
 
+@app.get("/call", response_class=HTMLResponse, tags=["Telephony"])
+async def web_call_view():
+    """Serve the free browser-based AI Voice Call page (no Twilio required)."""
+    call_path = Path(__file__).resolve().parent / "templates" / "call.html"
+    return FileResponse(call_path)
+
+
 @app.get("/api/status", tags=["Root"])
 async def root_endpoint():
     """Return application metadata."""

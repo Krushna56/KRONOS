@@ -819,26 +819,47 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">📞 Telephony Call Agent</div>
-                    <div class="card-badge">AUTO-PICK ON</div>
+                    <div class="card-badge" id="telephony-badge">OFFLINE</div>
                 </div>
 
                 <div class="call-card" id="call-card-box">
                     <div class="call-header">
                         <div>
-                            <div class="caller-id" id="caller-name">+91 98765 43210 (Rohan)</div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted);">Inbound Twilio Stream</div>
+                            <div class="caller-id" id="caller-name">No active calls</div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">Twilio Inbound Stream</div>
                         </div>
                         <span class="call-status-badge" id="call-status">STANDBY</span>
                     </div>
                     <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 8px;" id="call-preview-text">
-                        "Hello, is Krushna available? There's something urgent to discuss."
+                        Telephony agent awaiting activation. Click "Activate Telephony" to start.
                     </div>
                     <div style="font-size: 0.78rem; color: #ff77ee; margin-top: 6px; font-weight: 500;" id="call-clone-reply">
-                        KRONOS: "Good day. Krushna is presently occupied, sir. I am KRONOS, his AI executive assistant. How may I be of service?"
+                        KRONOS: Standing by for inbound calls, sir.
                     </div>
                 </div>
 
-                <!-- Simulate Test Call button removed for clean production UI -->
+                <div class="btn-row" style="margin-top: 14px; gap: 8px; flex-wrap: wrap;">
+                    <a class="btn btn-secondary" href="/call" target="_blank" style="text-decoration: none;">
+                        🌐 Open Free Call Link
+                    </a>
+                    <button class="btn btn-secondary" onclick="activateTelephony()" id="btn-activate-telephony">
+                        🚀 Activate Twilio
+                    </button>
+                    <button class="btn btn-secondary" onclick="showMakeCallDialog()" id="btn-make-call" style="display:none;">
+                        📞 Make Call
+                    </button>
+                </div>
+
+                <!-- Make Call Dialog (hidden by default) -->
+                <div id="make-call-dialog" style="display:none; margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 10px;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">Enter phone number (E.164 format):</div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="tel" id="outbound-phone" placeholder="+919876543210" 
+                            style="flex:1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 8px 12px; color: white; font-size: 0.85rem;">
+                        <button class="btn btn-secondary" onclick="makeOutboundCall()" style="padding: 8px 16px;">Call</button>
+                    </div>
+                    <div id="call-result" style="font-size: 0.75rem; color: var(--cyan-neon); margin-top: 6px;"></div>
+                </div>
             </div>
 
             <!-- Omnichannel Messages -->
@@ -1511,7 +1532,154 @@
             appendMessage('clone', `Executed Robot action: [${action.toUpperCase()}]`);
         }
 
-        // simulateIncomingCall removed — real telephony agent handles live calls
+        // ── Telephony Control Functions ──
+        let telephonyActive = false;
+        let callPollInterval = null;
+
+        async function activateTelephony() {
+            const btn = document.getElementById('btn-activate-telephony');
+            const badge = document.getElementById('telephony-badge');
+            const preview = document.getElementById('call-preview-text');
+            const reply = document.getElementById('call-clone-reply');
+
+            btn.innerText = '⏳ Activating...';
+            btn.disabled = true;
+
+            try {
+                const res = await authFetch('/api/telephony/setup');
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    telephonyActive = true;
+                    badge.innerText = 'LIVE';
+                    badge.style.background = '#00ff88';
+                    badge.style.color = '#000';
+                    preview.innerHTML = `<strong>Tunnel:</strong> ${data.ngrok_url}<br><strong>Webhook:</strong> ${data.webhook_url}`;
+                    reply.innerText = `KRONOS: Telephony is live, sir. Call ${data.phone_number} to test.`;
+                    btn.innerText = '✅ Telephony Active';
+                    btn.style.background = 'rgba(0, 255, 136, 0.15)';
+                    document.getElementById('btn-make-call').style.display = 'inline-flex';
+                    document.getElementById('dot-telephony').classList.add('active');
+
+                    // Start polling for active calls
+                    startCallPolling();
+                } else if (data.status === 'partial') {
+                    telephonyActive = true;
+                    badge.innerText = 'TUNNEL ON';
+                    badge.style.background = '#ffa500';
+                    preview.innerHTML = `<strong>Tunnel:</strong> ${data.ngrok_url}<br>${data.message}`;
+                    reply.innerText = 'KRONOS: Tunnel active but Twilio auto-config needs attention, sir.';
+                    btn.innerText = '⚠️ Partial Setup';
+                    btn.disabled = false;
+                } else {
+                    badge.innerText = 'ERROR';
+                    badge.style.background = '#ff4444';
+                    const errorMsg = data.errors ? data.errors.join('<br>') : data.message;
+                    preview.innerHTML = errorMsg;
+                    reply.innerText = 'KRONOS: Setup failed, sir. Please check your .env credentials.';
+                    btn.innerText = '🔄 Retry Setup';
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                badge.innerText = 'ERROR';
+                badge.style.background = '#ff4444';
+                preview.innerText = 'Failed to connect to server. Is KRONOS running?';
+                btn.innerText = '🔄 Retry Setup';
+                btn.disabled = false;
+            }
+        }
+
+        function startCallPolling() {
+            if (callPollInterval) clearInterval(callPollInterval);
+            callPollInterval = setInterval(async () => {
+                try {
+                    const res = await authFetch('/api/telephony/active-calls');
+                    const data = await res.json();
+                    const statusBadge = document.getElementById('call-status');
+                    const callerName = document.getElementById('caller-name');
+
+                    if (data.active_calls_count > 0) {
+                        const call = data.calls[0];
+                        statusBadge.innerText = 'CALL ACTIVE';
+                        statusBadge.style.background = '#00ff88';
+                        callerName.innerText = call.caller || 'Unknown Caller';
+
+                        if (call.history && call.history.length > 0) {
+                            const lastTurn = call.history[call.history.length - 1];
+                            if (lastTurn.speaker === 'caller') {
+                                document.getElementById('call-preview-text').innerText = `"${lastTurn.text}"`;
+                            } else {
+                                document.getElementById('call-clone-reply').innerText = `KRONOS: "${lastTurn.text}"`;
+                            }
+                        }
+                    } else {
+                        statusBadge.innerText = 'STANDBY';
+                        statusBadge.style.background = '#8a2be2';
+                        callerName.innerText = 'No active calls';
+                    }
+                } catch (e) {}
+            }, 3000);
+        }
+
+        function showMakeCallDialog() {
+            const dialog = document.getElementById('make-call-dialog');
+            dialog.style.display = dialog.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function makeOutboundCall() {
+            const phone = document.getElementById('outbound-phone').value.trim();
+            const resultDiv = document.getElementById('call-result');
+
+            if (!phone || !phone.startsWith('+')) {
+                resultDiv.innerText = '⚠️ Enter a valid phone number in +country format';
+                resultDiv.style.color = '#ffa500';
+                return;
+            }
+
+            resultDiv.innerText = '📞 Initiating call...';
+            resultDiv.style.color = 'var(--cyan-neon)';
+
+            try {
+                const res = await authFetch('/api/telephony/make-call', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: phone })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    resultDiv.innerText = `✅ Call initiated to ${phone} (SID: ${data.call_sid})`;
+                    resultDiv.style.color = '#00ff88';
+                    document.getElementById('call-status').innerText = 'CALLING...';
+                    document.getElementById('call-status').style.background = '#00ff88';
+                    document.getElementById('caller-name').innerText = phone;
+                } else {
+                    resultDiv.innerText = `❌ ${data.message}`;
+                    resultDiv.style.color = '#ff4444';
+                }
+            } catch (err) {
+                resultDiv.innerText = '❌ Failed to reach server';
+                resultDiv.style.color = '#ff4444';
+            }
+        }
+
+        // Check telephony tunnel status and start live call polling on page load
+        (async function checkTelephonyOnLoad() {
+            startCallPolling();
+            try {
+                const res = await authFetch('/api/telephony/tunnel-status');
+                const data = await res.json();
+                if (data.tunnel_active) {
+                    telephonyActive = true;
+                    document.getElementById('telephony-badge').innerText = 'LIVE';
+                    document.getElementById('telephony-badge').style.background = '#00ff88';
+                    document.getElementById('telephony-badge').style.color = '#000';
+                    document.getElementById('btn-activate-telephony').innerText = '✅ Twilio Active';
+                    document.getElementById('btn-activate-telephony').style.background = 'rgba(0, 255, 136, 0.15)';
+                    document.getElementById('btn-make-call').style.display = 'inline-flex';
+                }
+            } catch (e) {}
+        })();
     </script>
 </body>
 </html>

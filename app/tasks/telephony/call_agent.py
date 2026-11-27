@@ -82,7 +82,7 @@ class TelephonyCallAgent:
                     session = self.create_session(call_sid, caller)
 
                     # Initial greeting in Krushna's clone tone
-                    greeting = "Haan bhai, hello! Main Krushna ka AI assistant hu. Krushna abhi thoda busy hai, bolo kya kaam tha?"
+                    greeting = "Good day. This is KRONOS, Krushna's AI executive assistant. Krushna is presently occupied. How may I assist you?"
                     session.add_turn("agent", greeting)
                     await self._stream_speech(websocket, stream_sid, greeting)
 

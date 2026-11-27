@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRONOS — AI Voice Call Line</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body {
+            background: radial-gradient(circle at top, #0f172a 0%, #050814 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .phone-shell {
+            width: 100%;
+            max-width: 420px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 28px;
+            padding: 28px 24px;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 40px rgba(0, 240, 255, 0.08);
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            background: rgba(0, 240, 255, 0.12);
+            color: #00f0ff;
+            margin-bottom: 16px;
+        }
+        .badge.live { background: rgba(0, 255, 136, 0.18); color: #00ff88; }
+        .orb {
+            width: 112px;
+            height: 112px;
+            margin: 10px auto 18px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.35) 0%, rgba(138, 43, 226, 0.25) 60%, transparent 100%);
+            border: 2px solid rgba(0, 240, 255, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.3rem;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .orb.speaking {
+            transform: scale(1.08);
+            box-shadow: 0 0 36px rgba(0, 240, 255, 0.55);
+            border-color: #00f0ff;
+        }
+        .orb.listening {
+            transform: scale(1.05);
+            box-shadow: 0 0 32px rgba(0, 255, 136, 0.5);
+            border-color: #00ff88;
+        }
+        h1 { font-size: 1.35rem; font-weight: 700; color: #f8fafc; }
+        .subtitle { font-size: 0.82rem; color: #94a3b8; margin-top: 4px; }
+        .timer { font-size: 0.9rem; color: #00f0ff; font-variant-numeric: tabular-nums; margin-top: 8px; min-height: 20px; }
+        .caller-input {
+            width: 100%;
+            margin-top: 16px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 0.88rem;
+            outline: none;
+        }
+        .caller-input:focus { border-color: #00f0ff; }
+        .transcript-box {
+            margin-top: 18px;
+            height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            background: rgba(2, 6, 23, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px;
+            font-size: 0.82rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .msg-caller { color: #cbd5e1; }
+        .msg-kronos { color: #00f0ff; }
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-start { background: linear-gradient(135deg, #00ff88, #00c4ff); color: #041019; }
+        .btn-end { background: linear-gradient(135deg, #ff4d4d, #dc2626); color: #fff; display: none; }
+        .btn-mute { background: rgba(255, 255, 255, 0.1); color: #e2e8f0; display: none; flex: 0.6; }
+        .text-fallback {
+            display: none;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .text-fallback input {
+            flex: 1;
+            padding: 9px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+            font-size: 0.84rem;
+        }
+        .text-fallback button {
+            padding: 9px 14px;
+            border-radius: 10px;
+            border: none;
+            background: #00f0ff;
+            color: #041019;
+            font-weight: 600;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-shell">
+        <div class="badge" id="call-badge">READY • NO TWILIO NEEDED</div>
+        <div class="orb" id="orb">🤖</div>
+        <h1>KRONOS Voice Line</h1>
+        <div class="subtitle">Krushna's AI Executive Assistant</div>
+        <div class="timer" id="call-timer"></div>
+
+        <input type="text" class="caller-input" id="caller-name" placeholder="Your name (optional, e.g. Rohan)">
+
+        <div class="transcript-box" id="transcript">
+            <div class="msg-kronos"><strong>KRONOS:</strong> Standing by. Click "Start Call" to speak with me directly, sir.</div>
+        </div>
+
+        <div class="text-fallback" id="text-fallback">
+            <input type="text" id="text-turn-input" placeholder="Or type what you want to say..." onkeydown="if(event.key==='Enter') sendTypedTurn()">
+            <button onclick="sendTypedTurn()">Send</button>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-start" id="btn-start" onclick="startWebCall()">📞 Start Call</button>
+            <button class="btn btn-mute" id="btn-mute" onclick="toggleMicMute()">🎙️ Mute</button>
+            <button class="btn btn-end" id="btn-end" onclick="endWebCall()">🔴 End Call</button>
+        </div>
+    </div>
+
+    <script>
+        let callSid = null;
+        let isCallActive = false;
+        let isSpeaking = false;
+        let isMicMuted = false;
+        let recognition = null;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+
+        function addTranscript(speaker, text) {
+            const box = document.getElementById('transcript');
+            const div = document.createElement('div');
+            div.className = speaker === 'caller' ? 'msg-caller' : 'msg-kronos';
+            const label = speaker === 'caller' ? 'You' : 'KRONOS';
+            div.innerHTML = `<strong>${label}:</strong> ${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}`;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function updateTimer() {
+            secondsElapsed++;
+            const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+            const secs = String(secondsElapsed % 60).padStart(2, '0');
+            document.getElementById('call-timer').innerText = `${mins}:${secs}`;
+        }
+
+        function speakText(text, onDone) {
+            if (!('speechSynthesis' in window)) {
+                if (onDone) onDone();
+                return;
+            }
+            window.speechSynthesis.cancel();
+            isSpeaking = true;
+            stopMic();
+            const orb = document.getElementById('orb');
+            orb.classList.remove('listening');
+            orb.classList.add('speaking');
+
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.rate = 1.03;
+            utter.pitch = 0.95;
+            utter.onend = () => {
+                isSpeaking = false;
+                orb.classList.remove('speaking');
+                if (onDone) onDone();
+            };
+            utter.onerror = () => {
+                isSpeaking = false;
+                orb.classList.remove('speaking');
+                if (onDone) onDone();
+            };
+            window.speechSynthesis.speak(utter);
+        }
+
+        function initRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return null;
+            const rec = new SpeechRecognition();
+            rec.lang = 'en-IN';
+            rec.interimResults = false;
+            rec.continuous = false;
+
+            rec.onstart = () => {
+                if (!isSpeaking) document.getElementById('orb').classList.add('listening');
+            };
+            rec.onresult = async (event) => {
+                const text = event.results[0][0].transcript.trim();
+                if (!text || !isCallActive || isSpeaking) return;
+                addTranscript('caller', text);
+                await processCallerTurn(text);
+            };
+            rec.onerror = (e) => {
+                document.getElementById('orb').classList.remove('listening');
+                if (isCallActive && !isSpeaking && !isMicMuted && e.error !== 'not-allowed') {
+                    setTimeout(startMic, 500);
+                }
+            };
+            rec.onend = () => {
+                document.getElementById('orb').classList.remove('listening');
+                if (isCallActive && !isSpeaking && !isMicMuted) {
+                    setTimeout(startMic, 350);
+                }
+            };
+            return rec;
+        }
+
+        function startMic() {
+            if (!isCallActive || isSpeaking || isMicMuted) return;
+            if (!recognition) recognition = initRecognition();
+            if (!recognition) return;
+            try { recognition.start(); } catch (e) {}
+        }
+
+        function stopMic() {
+            if (recognition) {
+                try { recognition.abort(); } catch (e) {}
+            }
+            document.getElementById('orb').classList.remove('listening');
+        }
+
+        function toggleMicMute() {
+            isMicMuted = !isMicMuted;
+            const btn = document.getElementById('btn-mute');
+            if (isMicMuted) {
+                stopMic();
+                btn.innerText = '🔇 Unmute';
+            } else {
+                btn.innerText = '🎙️ Mute';
+                startMic();
+            }
+        }
+
+        async function startWebCall() {
+            const callerName = document.getElementById('caller-name').value.trim() || 'Web Caller';
+            document.getElementById('caller-name').disabled = true;
+            document.getElementById('btn-start').style.display = 'none';
+            document.getElementById('btn-end').style.display = 'block';
+            document.getElementById('btn-mute').style.display = 'block';
+            document.getElementById('text-fallback').style.display = 'flex';
+
+            const badge = document.getElementById('call-badge');
+            badge.innerText = 'CALL CONNECTED';
+            badge.classList.add('live');
+
+            isCallActive = true;
+            secondsElapsed = 0;
+            timerInterval = setInterval(updateTimer, 1000);
+
+            const res = await fetch('/api/telephony/web-call/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ caller_name: callerName })
+            });
+            const data = await res.json();
+            callSid = data.call_sid;
+
+            addTranscript('kronos', data.greeting);
+            speakText(data.greeting, () => {
+                if (isCallActive) startMic();
+            });
+        }
+
+        async function processCallerTurn(text) {
+            if (!callSid || !isCallActive) return;
+            const res = await fetch('/api/telephony/web-call/turn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ call_sid: callSid, text: text })
+            });
+            const data = await res.json();
+            addTranscript('kronos', data.reply);
+            speakText(data.reply, () => {
+                if (data.ended) {
+                    endWebCall(true);
+                } else if (isCallActive) {
+                    startMic();
+                }
+            });
+        }
+
+        async function sendTypedTurn() {
+            const input = document.getElementById('text-turn-input');
+            const text = input.value.trim();
+            if (!text || !isCallActive) return;
+            input.value = '';
+            addTranscript('caller', text);
+            await processCallerTurn(text);
+        }
+
+        async function endWebCall(skipNotify = false) {
+            isCallActive = false;
+            stopMic();
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            if (timerInterval) clearInterval(timerInterval);
+
+            if (callSid && !skipNotify) {
+                fetch('/api/telephony/web-call/end', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ call_sid: callSid })
+                }).catch(() => {});
+            }
+
+            callSid = null;
+            document.getElementById('call-badge').innerText = 'CALL ENDED';
+            document.getElementById('call-badge').classList.remove('live');
+            document.getElementById('caller-name').disabled = false;
+            document.getElementById('btn-start').style.display = 'block';
+            document.getElementById('btn-end').style.display = 'none';
+            document.getElementById('btn-mute').style.display = 'none';
+            document.getElementById('text-fallback').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
