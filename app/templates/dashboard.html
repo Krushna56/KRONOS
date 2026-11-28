@@ -711,42 +711,6 @@
                     <button class="btn-action" onclick="triggerAction('look_right')">👉 Look Right</button>
                 </div>
             </div>
-
-            <!-- Tone & Style Calibration -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">🎭 Persona Tone Tuner</div>
-                    <div class="card-badge">Krushna Clone</div>
-                </div>
-
-                <div class="slider-group">
-                    <div class="slider-header">
-                        <span>Hinglish Slang Ratio</span>
-                        <span id="val-hinglish">85%</span>
-                    </div>
-                    <input type="range" min="0" max="100" value="85" oninput="document.getElementById('val-hinglish').innerText = this.value + '%'">
-                </div>
-
-                <div class="slider-group">
-                    <div class="slider-header">
-                        <span>Casualness Level</span>
-                        <span id="val-casual">90%</span>
-                    </div>
-                    <input type="range" min="0" max="100" value="90" oninput="document.getElementById('val-casual').innerText = this.value + '%'">
-                </div>
-
-                <div class="slider-group">
-                    <div class="slider-header">
-                        <span>Reply Snappiness (Words)</span>
-                        <span id="val-length">12 words</span>
-                    </div>
-                    <input type="range" min="5" max="30" value="12" oninput="document.getElementById('val-length').innerText = this.value + ' words'">
-                </div>
-
-                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">
-                    Active Slangs: <strong style="color: var(--cyan-neon);">bhai, haan, yaar, theek hai, badhiya, sahi hai</strong>
-                </div>
-            </div>
         </div>
 
         <!-- CENTER PANEL: Arc Reactor Visualizer & Live Hearing -->
